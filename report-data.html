@@ -117,6 +117,15 @@ let trendView = 'day';
 let trendChart = null, fundChart = null;
 
 function initReportData() {
+  const saved = localStorage.getItem('shuyuan_report_data');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      reportData.length = 0;
+      reportData.push(...parsed);
+      return;
+    } catch {}
+  }
   for (let d = 1; d <= 30; d++) {
     const date = `2026-06-${String(d).padStart(2,'0')}`;
     const count = Math.floor(Math.random() * 5) + 1;
@@ -130,6 +139,7 @@ function initReportData() {
       });
     }
   }
+  localStorage.setItem('shuyuan_report_data', JSON.stringify(reportData));
 }
 
 let filteredReport = [];

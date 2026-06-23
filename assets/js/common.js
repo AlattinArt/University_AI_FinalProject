@@ -125,5 +125,8 @@ function setNavigationActive(pageId) {
 
 function handleLogout() {
   localStorage.removeItem('shuyuan_user');
+  localStorage.removeItem('shuyuan_stock_data');
+  localStorage.removeItem('shuyuan_report_data');
+  localStorage.removeItem('shuyuan_chat_history');
   window.location.href = 'login.html';
 }

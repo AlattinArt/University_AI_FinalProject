@@ -181,6 +181,15 @@ const items = Object.keys(itemTypes);
 const statuses = ['待审核','已通过','已归还','已拒绝'];
 
 function initMockData() {
+  const saved = localStorage.getItem('shuyuan_stock_data');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      mockData.length = 0;
+      mockData.push(...parsed);
+      return;
+    } catch {}
+  }
   for (let i = 1; i <= 86; i++) {
     const item = items[Math.floor(Math.random() * items.length)];
     const dept = depts[Math.floor(Math.random() * depts.length)];
@@ -195,6 +204,7 @@ function initMockData() {
       note: `${dept}教学实训使用`
     });
   }
+  localStorage.setItem('shuyuan_stock_data', JSON.stringify(mockData));
 }
 
 let currentPage = 1, pageSize = 10, filteredData = [], detailItem = null;
@@ -298,9 +308,14 @@ function submitApply() {
     note: document.getElementById('applyNote').value || `${dept}教学实训使用`
   });
 
+  saveStockData();
   Modal.hide('applyModal');
   Toast.success('申领提交成功，等待审核');
   resetFilter();
+}
+
+function saveStockData() {
+  localStorage.setItem('shuyuan_stock_data', JSON.stringify(mockData));
 }
 
 function escapeHtml(str) {
@@ -328,7 +343,7 @@ function viewDetail(id) {
 
 function approveApply(id) {
   const item = mockData.find(r => r.id === id);
-  if (item) { item.status = '已通过'; Toast.success(`单据 ${id} 已审核通过`); }
+  if (item) { item.status = '已通过'; saveStockData(); Toast.success(`单据 ${id} 已审核通过`); }
   applyFilter();
 }
 
@@ -468,7 +483,7 @@ function aiSend() {
         qty, date: getToday(), status: '待审核',
         note: 'AI 自助申领'
       });
-      resetFilter(); updateDashboard();
+      saveStockData(); resetFilter(); updateDashboard();
       aiAddMsg('✅ 已创建：' + dept + ' - ' + item + ' × ' + qty, 'ai');
       return;
     }
@@ -482,7 +497,7 @@ function aiSend() {
     const pending = mockData.filter(r => r.status === '待审核' && (!deptF || r.dept === deptF) && (!itemF || r.item === itemF));
     if (pending.length) {
       pending.forEach(r => r.status = '已通过');
-      applyFilter(); updateDashboard(); initChart();
+      saveStockData(); applyFilter(); updateDashboard(); initChart();
       aiAddMsg('✅ 已通过 ' + pending.length + ' 条待审核单据' + (deptF ? '（' + deptF + '）' : ''), 'ai');
     } else {
       aiAddMsg('❌ 没有找到符合条件的待审核单据', 'ai');
@@ -495,7 +510,7 @@ function aiSend() {
     const returned = mockData.filter(r => r.status === '已通过');
     if (returned.length) {
       returned.forEach(r => r.status = '已归还');
-      applyFilter(); updateDashboard();
+      saveStockData(); applyFilter(); updateDashboard();
       aiAddMsg('✅ 已将 ' + returned.length + ' 条已通过单据标记为已归还', 'ai');
     } else {
       aiAddMsg('❌ 没有已通过的单据需要归还', 'ai');
