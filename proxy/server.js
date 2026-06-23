@@ -9,7 +9,7 @@ let apiKey = '';
 const envPath = path.join(ROOT, '.env');
 try {
   const env = fs.readFileSync(envPath, 'utf-8');
-  const match = env.match(/BIGMODEL_API_KEY=(.+)/);
+  const match = env.match(/AGNES_API_KEY=(.+)/) || env.match(/BIGMODEL_API_KEY=(.+)/);
   if (match) apiKey = match[1].trim();
 } catch {}
 
@@ -25,6 +25,10 @@ const MIME = {
 };
 
 const API_PROVIDERS = {
+  agnes: {
+    url: 'https://apihub.agnes-ai.com/v1/chat/completions',
+    defaultModel: 'agnes-2.0-flash',
+  },
   bigmodel: {
     url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
     defaultModel: 'glm-4-flash',
@@ -35,7 +39,7 @@ const API_PROVIDERS = {
   },
 };
 
-let currentProvider = API_PROVIDERS.bigmodel;
+let currentProvider = API_PROVIDERS.agnes;
 
 function parseBody(req) {
   return new Promise((resolve, reject) => {
@@ -84,7 +88,7 @@ async function handleChat(req, res) {
 
     if (!apiKey) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: '请在 .env 文件中配置 BIGMODEL_API_KEY' }));
+      return res.end(JSON.stringify({ error: '请在 .env 文件中配置 AGNES_API_KEY' }));
     }
 
     const controller = new AbortController();
@@ -163,7 +167,7 @@ server.listen(PORT, () => {
   console.log(`  ───────────────────────────────`);
   console.log(`  访问地址: http://localhost:${PORT}`);
   console.log(`  API 地址: http://localhost:${PORT}/api/chat`);
-  console.log(`  当前模型: ${currentProvider.defaultModel} (智谱AI)`);
+  console.log(`  当前模型: ${currentProvider.defaultModel} (Agnes AI)`);
   console.log(`  API 密钥: ${apiKey ? '已配置 ✅' : '未配置 ❌ (请创建 .env 文件)'}`);
   console.log(`  用法: 浏览器打开 http://localhost:${PORT} 即可使用全部功能\n`);
 });

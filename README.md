@@ -8,7 +8,7 @@
 
 **主题赛道**：智慧校园（浙江树人学院实训器材、社团物资、办公耗材资产管理）
 
-**核心AI交互能力**：对接云端大模型API（通义千问），实现智能问答、校园文书生成、耗材数据分析三大AI功能
+**核心AI交互能力**：对接云端大模型API（智谱GLM），实现智能问答、校园文书生成、耗材数据分析三大AI功能
 
 ## 技术栈
 
@@ -76,7 +76,7 @@
 ### 1. 配置 API 密钥
 
 ```bash
-# 复制环境变量模板并填入真实 API Key（从 https://dashscope.aliyun.com 获取）
+# 复制环境变量模板并填入真实 API Key（从 https://open.bigmodel.cn 获取）
 copy .env.example .env
 ```
 
@@ -92,9 +92,9 @@ npm start
 
 ### 3. 切换本地模型（Ollama）
 
-在 `ai-assistant.html` 中将 `API_CONFIG.useLocal` 设为 `true`，并确保本地已运行：
+在 `ai-assistant.html` 中将 `API_CONFIG.useLocal` 设为 `true`，并确保本地已运行（推荐使用智谱GLM系列模型）：
 ```bash
-ollama run qwen3:7b
+ollama run glm4:9b
 ```
 
 ## 开发工具

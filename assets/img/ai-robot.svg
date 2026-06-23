@@ -13,5 +13,5 @@
   <circle cx="270" cy="160" r="20" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
   <line x1="150" y1="160" x2="165" y2="150" stroke="#3b82f6" stroke-width="2"/>
   <line x1="250" y1="150" x2="235" y2="160" stroke="#3b82f6" stroke-width="2"/>
-  <text x="200" y="260" text-anchor="middle" font-size="14" fill="#1e40af" font-family="sans-serif">AI 智能助手 · 通义千问</text>
+  <text x="200" y="260" text-anchor="middle" font-size="14" fill="#1e40af" font-family="sans-serif">AI 智能助手 · 智谱GLM</text>
 </svg>

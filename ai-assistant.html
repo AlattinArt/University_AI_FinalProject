@@ -74,7 +74,7 @@
     <div class="card" style="flex:1;display:flex;flex-direction:column">
       <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
-          <div class="msg msg-ai">你好！我是树院智管 AI 助手，已对接智谱AI大模型。<br>你可以问我以下问题：<br>• 物资申领流程是什么？<br>• 存放点开放时间？<br>• 设备如何报修？<br>• 生成校园标准化文书<br>• 上传CSV进行耗材数据分析</div>
+          <div class="msg msg-ai">你好！我是树院智管 AI 助手，已对接 Agnes AI 大模型。<br>你可以问我以下问题：<br>• 物资申领流程是什么？<br>• 存放点开放时间？<br>• 设备如何报修？<br>• 生成校园标准化文书<br>• 上传CSV进行耗材数据分析</div>
         </div>
         <div id="inputArea" class="flex gap-2 items-end pt-3 border-t border-gray-100">
           <div id="docInputArea" style="display:none" class="flex-1 flex gap-2">
@@ -110,7 +110,7 @@ const API_CONFIG = {
     : '/api/chat',
   useLocal: false,
   localUrl: 'http://localhost:11434/api/chat',
-  localModel: 'qwen3:7b'
+  localModel: 'glm4:9b'
 };
 
 let currentMode = 'qa';
@@ -217,7 +217,7 @@ async function sendMessage() {
     }
   } catch (err) {
     removeTypingIndicator();
-    addMessage('AI 服务错误：' + err.message + '。请检查 .env 中的 API Key 是否有效（智谱AI: https://open.bigmodel.cn），或将 useLocal 设为 true 使用本地 Ollama。', 'ai');
+    addMessage('AI 服务错误：' + err.message + '。请检查 .env 中的 API Key 是否有效（Agnes AI: https://platform.agnes-ai.com），或将 useLocal 设为 true 使用本地 Ollama。', 'ai');
   }
 
   isStreaming = false;
