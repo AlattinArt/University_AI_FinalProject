@@ -9,7 +9,7 @@ let apiKey = '';
 const envPath = path.join(ROOT, '.env');
 try {
   const env = fs.readFileSync(envPath, 'utf-8');
-  const match = env.match(/DASHSCOPE_API_KEY=(.+)/);
+  const match = env.match(/BIGMODEL_API_KEY=(.+)/);
   if (match) apiKey = match[1].trim();
 } catch {}
 
@@ -23,6 +23,19 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.ico': 'image/x-icon',
 };
+
+const API_PROVIDERS = {
+  bigmodel: {
+    url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    defaultModel: 'glm-4-flash',
+  },
+  dashscope: {
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    defaultModel: 'qwen-turbo-latest',
+  },
+};
+
+let currentProvider = API_PROVIDERS.bigmodel;
 
 function parseBody(req) {
   return new Promise((resolve, reject) => {
@@ -67,17 +80,17 @@ const server = http.createServer(async (req, res) => {
 
 async function handleChat(req, res) {
   try {
-    const { messages, model = 'qwen-turbo-latest' } = await parseBody(req);
+    const { messages, model = currentProvider.defaultModel } = await parseBody(req);
 
     if (!apiKey) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: '请在 .env 文件中配置 DASHSCOPE_API_KEY' }));
+      return res.end(JSON.stringify({ error: '请在 .env 文件中配置 BIGMODEL_API_KEY' }));
     }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 60000);
 
-    const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+    const response = await fetch(currentProvider.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -143,11 +156,14 @@ async function handleChat(req, res) {
   }
 }
 
+const providerName = Object.keys(API_PROVIDERS).find(k => API_PROVIDERS[k] === currentProvider) || 'bigmodel';
+
 server.listen(PORT, () => {
   console.log(`\n  🌐 树院智管 · 校园物资智能交互系统`);
   console.log(`  ───────────────────────────────`);
   console.log(`  访问地址: http://localhost:${PORT}`);
   console.log(`  API 地址: http://localhost:${PORT}/api/chat`);
+  console.log(`  当前模型: ${currentProvider.defaultModel} (智谱AI)`);
   console.log(`  API 密钥: ${apiKey ? '已配置 ✅' : '未配置 ❌ (请创建 .env 文件)'}`);
   console.log(`  用法: 浏览器打开 http://localhost:${PORT} 即可使用全部功能\n`);
 });

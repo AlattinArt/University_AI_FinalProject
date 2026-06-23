@@ -74,7 +74,7 @@
     <div class="card" style="flex:1;display:flex;flex-direction:column">
       <div class="chat-container">
         <div class="chat-messages" id="chatMessages">
-          <div class="msg msg-ai">你好！我是树院智管 AI 助手，已对接通义千问大模型。<br>你可以问我以下问题：<br>• 物资申领流程是什么？<br>• 存放点开放时间？<br>• 设备如何报修？<br>• 生成校园标准化文书<br>• 上传CSV进行耗材数据分析</div>
+          <div class="msg msg-ai">你好！我是树院智管 AI 助手，已对接智谱AI大模型。<br>你可以问我以下问题：<br>• 物资申领流程是什么？<br>• 存放点开放时间？<br>• 设备如何报修？<br>• 生成校园标准化文书<br>• 上传CSV进行耗材数据分析</div>
         </div>
         <div id="inputArea" class="flex gap-2 items-end pt-3 border-t border-gray-100">
           <div id="docInputArea" style="display:none" class="flex-1">
@@ -172,11 +172,6 @@ function typeWriter(element, text, speed = 30) {
   });
 }
 
-function isRelevantQuestion(text) {
-  const keywords = ['物资','申领','归还','存放','器材','设备','报修','耗材','实训','实验室','办公','采购','报废','库存','学院','树人','校园','资产','借用','申请','经费'];
-  return keywords.some(k => text.includes(k));
-}
-
 function getSystemPrompt() {
   return SYSTEM_PROMPTS[currentMode] || SYSTEM_PROMPTS.qa;
 }
@@ -196,13 +191,6 @@ async function sendMessage() {
     userText = `[模板: ${template}] ${prompt}`;
     document.getElementById('docPrompt').value = '';
   } else {
-    return;
-  }
-
-  if (currentMode === 'qa' && !isRelevantQuestion(userText)) {
-    addMessage(userText, 'user');
-    document.getElementById('chatInput').value = '';
-    addMessage('抱歉，我是树院智管校园物资管理助手，只能回答与浙江树人学院校园物资管理相关的问题。请咨询物资申领、存放点开放、设备报修、实训器材等方面的问题。', 'ai');
     return;
   }
 
@@ -226,7 +214,7 @@ async function sendMessage() {
     }
   } catch (err) {
     removeTypingIndicator();
-    addMessage('AI 服务错误：' + err.message + '。请检查 API Key 是否有效（https://dashscope.aliyun.com），或将 useLocal 设为 true 使用本地 Ollama。', 'ai');
+    addMessage('AI 服务错误：' + err.message + '。请检查 .env 中的 API Key 是否有效（智谱AI: https://open.bigmodel.cn），或将 useLocal 设为 true 使用本地 Ollama。', 'ai');
   }
 
   isStreaming = false;
