@@ -8,6 +8,28 @@
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script>tailwind.config={theme:{extend:{colors:{primary:{50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'}}}}}</script>
 <link rel="stylesheet" href="assets/css/style.css">
+<style>
+.ai-fab{position:fixed;bottom:24px;right:24px;z-index:90;width:52px;height:52px;border-radius:50%;background:var(--primary);color:#fff;border:none;box-shadow:0 4px 16px rgba(30,64,175,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s}
+.ai-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(30,64,175,.45)}
+.ai-fab-hidden{display:none!important}
+.ai-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.3);z-index:95;display:none}
+.ai-overlay.show{display:block}
+.ai-panel{position:fixed;top:0;right:-400px;bottom:0;z-index:96;width:380px;max-width:100vw;background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,.1);display:flex;flex-direction:column;transition:right .3s ease}
+.ai-panel.open{right:0}
+.ai-panel .msg{font-size:13px;padding:10px 14px}
+.ai-ph{padding:14px 16px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
+.ai-ph h3{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px}
+.ai-pm{flex:1;overflow-y:auto;padding:10px 16px}
+.ai-pi{border-top:1px solid #e2e8f0;padding:10px 16px}
+.ai-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+.ai-chips button{padding:4px 10px;border:1px solid #dbeafe;border-radius:14px;background:#eff6ff;color:var(--primary);font-size:11px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ai-chips button:hover{background:#dbeafe}
+.ai-ir{display:flex;gap:6px}
+.ai-ir input{flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;outline:none}
+.ai-ir input:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.ai-ir button{padding:8px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500}
+.ai-ir button:hover{background:var(--primary-dark)}
+</style>
 </head>
 <body>
 <div id="toast-container" class="toast"></div>
@@ -41,6 +63,7 @@
       <div class="user-info">
         <span id="userName">管理员</span>
         <div class="avatar" id="userAvatar">管</div>
+        <button class="btn btn-outline btn-sm" onclick="handleLogout()" title="退出登录" style="margin-left:4px">退出</button>
       </div>
     </div>
 
@@ -86,6 +109,32 @@
       </div>
     </div>
   </main>
+</div>
+
+<button class="ai-fab" id="aiFab" onclick="toggleAI()" title="AI 物资管理">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+</button>
+<div class="ai-overlay" id="aiOverlay" onclick="toggleAI()"></div>
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-ph">
+    <h3><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> AI 物资管理</h3>
+    <button class="modal-close" onclick="toggleAI()">✕</button>
+  </div>
+  <div class="ai-pm" id="aiMessages">
+    <div class="msg msg-ai">你好，我是物资管理 AI 助手！试试这些：<br>• <b>新增申领</b> 计算机学院 笔记本电脑 5<br>• <b>通过</b> 计算机学院的待审核单据<br>• <b>显示</b> 电脑耗材<br>• <b>统计</b> 本月数据</div>
+  </div>
+  <div class="ai-pi">
+    <div class="ai-chips" id="aiChips">
+      <button onclick="aiQuick('新增申领')">➕ 新增申领</button>
+      <button onclick="aiQuick('审核待处理')">✅ 审核待处理</button>
+      <button onclick="aiQuick('数据统计')">📊 数据统计</button>
+      <button onclick="aiQuick('显示全部')">📋 显示全部</button>
+    </div>
+    <div class="ai-ir">
+      <input type="text" id="aiInput" placeholder="输入指令或问题..." onkeydown="if(event.key==='Enter') aiSend()">
+      <button onclick="aiSend()">发送</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="applyModal" onclick="Modal.closeOnOverlay(event)">
@@ -363,6 +412,195 @@ initChart();
 const user = getCurrentUser();
 document.getElementById('userName').textContent = user.name;
 document.getElementById('userAvatar').textContent = user.avatar;
+
+/* ===== AI 物资管理助手 ===== */
+function toggleAI() {
+  document.getElementById('aiPanel').classList.toggle('open');
+  document.getElementById('aiOverlay').classList.toggle('show');
+  document.getElementById('aiFab').classList.toggle('ai-fab-hidden');
+}
+
+function aiAddMsg(html, role) {
+  const c = document.getElementById('aiMessages');
+  const d = document.createElement('div');
+  d.className = 'msg msg-' + role;
+  d.innerHTML = html;
+  c.appendChild(d);
+  c.scrollTop = c.scrollHeight;
+}
+
+function aiQuick(cmd) {
+  document.getElementById('aiInput').value = cmd;
+  aiSend();
+}
+
+function aiFindDept(s) {
+  for (const d of depts) { if (s.includes(d) || d.includes(s)) return d; }
+  for (const d of depts) { for (let i = 0; i < s.length - 1; i++) { if (d.includes(s[i])) return d; } }
+  return '';
+}
+
+function aiFindItem(s) {
+  for (const it of items) { if (s.includes(it) || it.includes(s)) return it; }
+  for (const it of items) { for (let i = 0; i < s.length - 1; i++) { if (it.includes(s[i])) return it; } }
+  return items[0];
+}
+
+function aiSend() {
+  const input = document.getElementById('aiInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  aiAddMsg(text, 'user');
+
+  const t = text;
+
+  /* 1. 新增申领 */
+  const addRe = t.match(/^(?:新增|添加|创建)(?:申领)?\s*(.+?)\s+(.+?)\s+(\d+)/);
+  if (addRe) {
+    const dept = aiFindDept(addRe[1]);
+    const item = aiFindItem(addRe[2]);
+    const qty = parseInt(addRe[3]);
+    if (dept && qty > 0) {
+      mockData.unshift({
+        id: 'ZJSR' + String(2026999 - mockData.length).slice(-6),
+        dept, item, type: itemTypes[item] || '其他',
+        qty, date: getToday(), status: '待审核',
+        note: 'AI 自助申领'
+      });
+      resetFilter(); updateDashboard();
+      aiAddMsg('✅ 已创建：' + dept + ' - ' + item + ' × ' + qty, 'ai');
+      return;
+    }
+  }
+
+  /* 2. 审核通过 */
+  if (t.includes('通过') || t.includes('批准') || t.includes('审核')) {
+    let deptF = '', itemF = '';
+    for (const d of depts) { if (t.includes(d)) { deptF = d; break; } }
+    for (const it of items) { if (t.includes(it)) { itemF = it; break; } }
+    const pending = mockData.filter(r => r.status === '待审核' && (!deptF || r.dept === deptF) && (!itemF || r.item === itemF));
+    if (pending.length) {
+      pending.forEach(r => r.status = '已通过');
+      applyFilter(); updateDashboard(); initChart();
+      aiAddMsg('✅ 已通过 ' + pending.length + ' 条待审核单据' + (deptF ? '（' + deptF + '）' : ''), 'ai');
+    } else {
+      aiAddMsg('❌ 没有找到符合条件的待审核单据', 'ai');
+    }
+    return;
+  }
+
+  /* 3. 归还 */
+  if (t.includes('归还')) {
+    const returned = mockData.filter(r => r.status === '已通过');
+    if (returned.length) {
+      returned.forEach(r => r.status = '已归还');
+      applyFilter(); updateDashboard();
+      aiAddMsg('✅ 已将 ' + returned.length + ' 条已通过单据标记为已归还', 'ai');
+    } else {
+      aiAddMsg('❌ 没有已通过的单据需要归还', 'ai');
+    }
+    return;
+  }
+
+  /* 4. 筛选显示 */
+  if (t.startsWith('显示') || t.startsWith('查看') || t.startsWith('搜索') || t.startsWith('筛选')) {
+    let applied = false;
+    for (const d of depts) {
+      if (t.includes(d)) { document.getElementById('filterDept').value = d; applied = true; break; }
+    }
+    for (const s of statuses) {
+      if (t.includes(s)) {
+        for (const o of document.getElementById('filterStatus').options) { if (o.value === s) { o.selected = true; applied = true; break; } }
+        break;
+      }
+    }
+    for (const it of items) {
+      if (t.includes(it)) {
+        const type = itemTypes[it];
+        for (const o of document.getElementById('filterType').options) { if (o.value === type) { o.selected = true; applied = true; break; } }
+        break;
+      }
+    }
+    if (t.includes('全部')) { resetFilter(); aiAddMsg('📋 已显示全部数据（共 ' + mockData.length + ' 条）', 'ai'); return; }
+    if (applied) { applyFilter(); aiAddMsg('🔍 已筛选，共 ' + filteredData.length + ' 条结果', 'ai'); return; }
+    aiAddMsg('未识别到筛选条件，试试：显示 计算机学院、查看 电脑耗材', 'ai');
+    return;
+  }
+
+  /* 5. 统计 */
+  if (t.includes('统计') || t.includes('汇总') || t.includes('概览') || t === '数据统计') {
+    const p = mockData.filter(r => r.status === '待审核').length;
+    const ap = mockData.filter(r => r.status === '已通过').length;
+    const re = mockData.filter(r => r.status === '已归还').length;
+    const dStats = depts.map(d => d + '：' + mockData.filter(r => r.dept === d).length + '条').join('<br>');
+    aiAddMsg('📊 <b>物资数据概览</b><br>总单据：' + mockData.length + ' 条<br>待审核：' + p + ' 条<br>已通过：' + ap + ' 条<br>已归还：' + re + ' 条<br>物资总数：' + mockData.reduce((s, r) => s + r.qty, 0) + ' 件<br><br><b>学院分布</b><br>' + dStats, 'ai');
+    return;
+  }
+
+  /* 6. 导出 */
+  if (t.includes('导出')) { exportTableData(); aiAddMsg('📥 已触发数据导出', 'ai'); return; }
+
+  /* 7. 新增申领 - 打开模态框 */
+  if (t === '新增申领') { openApplyModal(); aiAddMsg('已打开新增申领表单', 'ai'); return; }
+
+  /* 8. 审核待处理 - 筛选待审核 */
+  if (t === '审核待处理') {
+    for (const o of document.getElementById('filterStatus').options) { if (o.value === '待审核') { o.selected = true; break; } }
+    applyFilter();
+    aiAddMsg('已筛选待审核单据，共 ' + filteredData.length + ' 条', 'ai');
+    return;
+  }
+
+  /* 未匹配 → 调 AI API */
+  aiCallAPI(t);
+}
+
+async function aiCallAPI(text) {
+  const summary = '当前物资系统数据：\n总单据数：' + mockData.length +
+    '\n待审核：' + mockData.filter(r => r.status === '待审核').length +
+    '\n已通过：' + mockData.filter(r => r.status === '已通过').length +
+    '\n各学院：' + depts.map(d => d + '(' + mockData.filter(r => r.dept === d).length + ')').join('、') +
+    '\n\n用户问题：' + text;
+
+  const typing = document.createElement('div');
+  typing.className = 'msg msg-ai';
+  typing.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  document.getElementById('aiMessages').appendChild(typing);
+
+  try {
+    const proxy = location.protocol === 'file:' ? 'http://localhost:3000/api/chat' : '/api/chat';
+    const resp = await fetch(proxy, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: '你是浙江树人学院树院智管系统的物资管理AI助手。回答关于物资申领管理的问题，回答简洁实用。可以建议用户使用快捷指令：新增申领、通过待审核、显示/查看、统计。' },
+          { role: 'user', content: summary }
+        ]
+      })
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let full = '';
+    typing.innerHTML = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const p = JSON.parse(line.slice(6));
+          if (p.content) { full += p.content; typing.textContent = full; document.getElementById('aiMessages').scrollTop = document.getElementById('aiMessages').scrollHeight; }
+        } catch {}
+      }
+    }
+  } catch {
+    typing.remove();
+    aiAddMsg('AI 服务暂时不可用，请使用快捷指令操作。', 'ai');
+  }
+}
 </script>
 </body>
 </html>

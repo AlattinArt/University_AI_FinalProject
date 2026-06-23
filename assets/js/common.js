@@ -122,3 +122,8 @@ function setNavigationActive(pageId) {
   const link = document.querySelector(`.sidebar-nav a[data-page="${pageId}"]`);
   if (link) link.classList.add('active');
 }
+
+function handleLogout() {
+  localStorage.removeItem('shuyuan_user');
+  window.location.href = 'login.html';
+}
