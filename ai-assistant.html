@@ -77,9 +77,12 @@
           <div class="msg msg-ai">你好！我是树院智管 AI 助手，已对接智谱AI大模型。<br>你可以问我以下问题：<br>• 物资申领流程是什么？<br>• 存放点开放时间？<br>• 设备如何报修？<br>• 生成校园标准化文书<br>• 上传CSV进行耗材数据分析</div>
         </div>
         <div id="inputArea" class="flex gap-2 items-end pt-3 border-t border-gray-100">
-          <div id="docInputArea" style="display:none" class="flex-1">
-            <select id="docTemplate" class="doc-template-select mb-2"><option value="物资申请单">📋 物资申请单</option><option value="实训器材借用报告">🔬 实训器材借用报告</option><option value="月度耗材总结">📊 月度耗材总结</option><option value="设备报修单">🔧 设备报修单</option></select>
-            <input type="text" id="docPrompt" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-400" placeholder="请输入需求描述，如：我需要申请50台笔记本电脑用于计算机学院实训教学...">
+          <div id="docInputArea" style="display:none" class="flex-1 flex gap-2">
+            <div class="flex-1">
+              <select id="docTemplate" class="doc-template-select mb-2"><option value="物资申请单">📋 物资申请单</option><option value="实训器材借用报告">🔬 实训器材借用报告</option><option value="月度耗材总结">📊 月度耗材总结</option><option value="设备报修单">🔧 设备报修单</option></select>
+              <input type="text" id="docPrompt" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-400" placeholder="请输入需求描述，如：我需要申请50台笔记本电脑用于计算机学院实训教学..." onkeydown="if(event.key==='Enter') sendMessage()">
+            </div>
+            <button class="btn btn-primary self-end" onclick="sendMessage()">确认生成</button>
           </div>
           <div id="dataInputArea" style="display:none" class="flex-1">
             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
