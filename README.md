@@ -73,25 +73,22 @@
 
 ## 快速开始
 
-### 1. 浏览器直接运行（核心功能）
-
-用 Chrome/Edge 浏览器直接打开以下HTML文件：
-- `login.html` — 系统登录
-- `stock-apply.html` — 物资申领管理
-- `report-data.html` — 数据分析报表
-- `ai-assistant.html` — AI智能助手
-
-> 注意：AI对话页面需要启动Node中转层才能调用大模型API
-
-### 2. 启动AI中转服务（可选）
+### 1. 配置 API 密钥
 
 ```bash
-# 配置环境变量（复制 .env.example 并填入真实API Key）
+# 复制环境变量模板并填入真实 API Key（从 https://dashscope.aliyun.com 获取）
 copy .env.example .env
+```
 
-# 启动中转服务（默认3000端口，零依赖，无需npm install）
+### 2. 一键启动（推荐）
+
+```bash
 npm start
 ```
+
+浏览器访问 `http://localhost:3000` 即可使用全部功能（登录、物资管理、数据分析、AI对话）。
+
+> 也可以直接用浏览器打开 HTML 文件使用核心功能，但 AI 对话页需要启动服务才能调用大模型 API。
 
 ### 3. 切换本地模型（Ollama）
 

@@ -102,7 +102,9 @@
 <script src="assets/js/common.js"></script>
 <script>
 const API_CONFIG = {
-  proxyUrl: 'http://localhost:3000/api/chat',
+  proxyUrl: location.protocol === 'file:'
+    ? 'http://localhost:3000/api/chat'
+    : '/api/chat',
   useLocal: false,
   localUrl: 'http://localhost:11434/api/chat',
   localModel: 'qwen3:7b'
@@ -224,20 +226,23 @@ async function sendMessage() {
     }
   } catch (err) {
     removeTypingIndicator();
-    addMessage('抱歉，AI服务暂时不可用。请确认已启动Node中转服务（node proxy/server.js）或将 useLocal 设为 true 以使用本地Ollama。', 'ai');
+    addMessage('AI 服务错误：' + err.message + '。请检查 API Key 是否有效（https://dashscope.aliyun.com），或将 useLocal 设为 true 使用本地 Ollama。', 'ai');
   }
 
   isStreaming = false;
 }
 
 async function callProxyAPI(messages) {
-  const response = await fetch(API_CONFIG.proxyUrl, {
+    const response = await fetch(API_CONFIG.proxyUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages })
   });
 
-  if (!response.ok) throw new Error('API error');
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.error || `HTTP ${response.status}`);
+  }
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -366,7 +371,18 @@ function handleFileUpload(event) {
 (function init() {
   const saved = localStorage.getItem('shuyuan_chat_history');
   if (saved) {
-    try { chatHistory = JSON.parse(saved); } catch { chatHistory = []; }
+    try {
+      chatHistory = JSON.parse(saved);
+      const container = document.getElementById('chatMessages');
+      container.innerHTML = '';
+      chatHistory.forEach(m => {
+        const div = document.createElement('div');
+        div.className = `msg msg-${m.role === 'user' ? 'user' : 'ai'}`;
+        div.textContent = m.content;
+        container.appendChild(div);
+      });
+      container.scrollTop = container.scrollHeight;
+    } catch { chatHistory = []; }
   }
 
   const user = getCurrentUser();

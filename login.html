@@ -53,8 +53,18 @@ body{background:linear-gradient(135deg,#eff6ff,#dbeafe,#bfdbfe);min-height:100vh
   <script>
     function handleLogin(e) {
       e.preventDefault();
-      const user = document.getElementById('username').value.trim() || '管理员';
-      localStorage.setItem('shuyuan_user', JSON.stringify({ name: user, role: 'admin', avatar: user[0] }));
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const validUser = 'admin';
+      const validPass = '123456';
+      if (username !== validUser || password !== validPass) {
+        const btn = document.querySelector('button[type="submit"]');
+        btn.textContent = '账号或密码错误';
+        btn.style.background = '#ef4444';
+        setTimeout(() => { btn.textContent = '登 录'; btn.style.background = ''; }, 2000);
+        return false;
+      }
+      localStorage.setItem('shuyuan_user', JSON.stringify({ name: username, role: 'admin', avatar: username[0] }));
       window.location.href = 'stock-apply.html';
       return false;
     }

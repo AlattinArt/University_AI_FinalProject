@@ -3,14 +3,26 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
+const ROOT = path.join(__dirname, '..');
 let apiKey = '';
 
-const envPath = path.join(__dirname, '..', '.env');
+const envPath = path.join(ROOT, '.env');
 try {
   const env = fs.readFileSync(envPath, 'utf-8');
   const match = env.match(/DASHSCOPE_API_KEY=(.+)/);
   if (match) apiKey = match[1].trim();
 } catch {}
+
+const MIME = {
+  '.html': 'text/html;charset=utf-8',
+  '.css': 'text/css;charset=utf-8',
+  '.js': 'application/javascript;charset=utf-8',
+  '.json': 'application/json',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.ico': 'image/x-icon',
+};
 
 function parseBody(req) {
   return new Promise((resolve, reject) => {
@@ -20,6 +32,19 @@ function parseBody(req) {
       try { resolve(JSON.parse(body)); } catch (e) { reject(new Error('Invalid JSON')); }
     });
     req.on('error', reject);
+  });
+}
+
+function serveStatic(url, res) {
+  let filePath = path.join(ROOT, url === '/' ? 'login.html' : url);
+  const ext = path.extname(filePath);
+  fs.readFile(filePath, (err, data) => {
+    if (err) {
+      res.writeHead(404, { 'Content-Type': 'text/html;charset=utf-8' });
+      return res.end('<h1>404 Not Found</h1>');
+    }
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    res.end(data);
   });
 }
 
@@ -33,13 +58,16 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  if (req.method !== 'POST' || req.url !== '/api/chat') {
-    res.writeHead(404, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ error: 'Not Found' }));
+  if (req.method === 'POST' && req.url === '/api/chat') {
+    return handleChat(req, res);
   }
 
+  serveStatic(req.url, res);
+});
+
+async function handleChat(req, res) {
   try {
-    const { messages, model = 'qwen-turbo' } = await parseBody(req);
+    const { messages, model = 'qwen-turbo-latest' } = await parseBody(req);
 
     if (!apiKey) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -47,7 +75,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
+    const timeout = setTimeout(() => controller.abort(), 60000);
 
     const response = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
       method: 'POST',
@@ -113,12 +141,13 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: '服务器内部错误: ' + err.message }));
   }
-});
+}
 
 server.listen(PORT, () => {
-  console.log(`\n  🌐 树院智管 AI 中转服务`);
-  console.log(`  ─────────────────────────`);
-  console.log(`  地址: http://localhost:${PORT}/api/chat`);
-  console.log(`  API: ${apiKey ? '已配置 ✅' : '未配置 ❌ (请创建 .env 文件)'}`);
-  console.log(`  用法: 浏览器直接打开 .html 文件即可使用核心功能\n`);
+  console.log(`\n  🌐 树院智管 · 校园物资智能交互系统`);
+  console.log(`  ───────────────────────────────`);
+  console.log(`  访问地址: http://localhost:${PORT}`);
+  console.log(`  API 地址: http://localhost:${PORT}/api/chat`);
+  console.log(`  API 密钥: ${apiKey ? '已配置 ✅' : '未配置 ❌ (请创建 .env 文件)'}`);
+  console.log(`  用法: 浏览器打开 http://localhost:${PORT} 即可使用全部功能\n`);
 });
