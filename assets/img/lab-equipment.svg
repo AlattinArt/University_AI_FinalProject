@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#f0f9ff" rx="16"/>
+  <rect x="50" y="80" width="80" height="120" rx="6" fill="#e0e7ff" stroke="#6366f1" stroke-width="2"/>
+  <rect x="60" y="90" width="60" height="60" rx="4" fill="#c7d2fe"/>
+  <circle cx="90" cy="120" r="15" fill="#818cf8"/>
+  <rect x="60" y="160" width="60" height="8" rx="2" fill="#a5b4fc"/>
+  <rect x="70" y="175" width="40" height="6" rx="2" fill="#a5b4fc"/>
+  <rect x="170" y="60" width="100" height="60" rx="8" fill="#e0e7ff" stroke="#6366f1" stroke-width="2"/>
+  <rect x="180" y="70" width="80" height="40" rx="4" fill="#c7d2fe"/>
+  <circle cx="200" cy="90" r="8" fill="#818cf8"/>
+  <circle cx="230" cy="90" r="8" fill="#818cf8"/>
+  <rect x="170" y="130" width="50" height="6" rx="2" fill="#a5b4fc"/>
+  <rect x="240" y="130" width="30" height="6" rx="2" fill="#a5b4fc"/>
+  <rect x="170" y="145" width="70" height="50" rx="6" fill="#e0e7ff" stroke="#6366f1" stroke-width="2"/>
+  <rect x="310" y="90" width="50" height="100" rx="6" fill="#e0e7ff" stroke="#6366f1" stroke-width="2"/>
+  <rect x="320" y="100" width="30" height="30" rx="4" fill="#c7d2fe"/>
+  <rect x="320" y="140" width="30" height="10" rx="2" fill="#a5b4fc"/>
+  <rect x="320" y="155" width="30" height="10" rx="2" fill="#a5b4fc"/>
+  <text x="200" y="260" text-anchor="middle" font-size="14" fill="#4338ca" font-family="sans-serif">校园实训器材</text>
+</svg>

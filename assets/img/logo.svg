@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <rect width="200" height="200" rx="40" fill="#1e40af"/>
+  <text x="100" y="80" text-anchor="middle" font-size="60" font-weight="bold" fill="#fff" font-family="sans-serif">树</text>
+  <text x="100" y="130" text-anchor="middle" font-size="24" font-weight="bold" fill="#93c5fd" font-family="sans-serif">树院智管</text>
+  <text x="100" y="155" text-anchor="middle" font-size="10" fill="#bfdbfe" font-family="sans-serif">ZJSRU · Smart Campus</text>
+</svg>

@@ -1,0 +1,9 @@
+{
+  "project": "树院智管 · 校园物资智能交互系统",
+  "version": "1.0.0",
+  "description": "浙江树人学院《人工智能》课程大作业",
+  "reviewRules": {
+    "security": ["no-api-keys-in-frontend", "no-hardcoded-passwords", "xss-prevention"],
+    "conventions": ["campus-blue-theme", "no-industrial-residuals", "consistent-naming"]
+  }
+}

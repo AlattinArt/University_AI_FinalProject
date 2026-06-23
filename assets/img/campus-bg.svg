@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400">
+  <rect width="800" height="400" fill="#eff6ff"/>
+  <rect x="0" y="250" width="800" height="150" fill="#dbeafe"/>
+  <rect x="100" y="120" width="60" height="130" rx="4" fill="#93c5fd"/>
+  <polygon points="100,120 160,120 130,80" fill="#60a5fa"/>
+  <rect x="200" y="100" width="60" height="150" rx="4" fill="#60a5fa"/>
+  <polygon points="200,100 260,100 230,60" fill="#3b82f6"/>
+  <rect x="340" y="80" width="80" height="170" rx="4" fill="#3b82f6"/>
+  <polygon points="340,80 420,80 380,30" fill="#2563eb"/>
+  <rect x="480" y="110" width="60" height="140" rx="4" fill="#60a5fa"/>
+  <polygon points="480,110 540,110 510,70" fill="#3b82f6"/>
+  <rect x="600" y="130" width="60" height="120" rx="4" fill="#93c5fd"/>
+  <polygon points="600,130 660,130 630,90" fill="#60a5fa"/>
+  <rect x="50" y="250" width="700" height="30" fill="#1e40af" rx="2"/>
+  <rect x="150" y="260" width="50" height="40" rx="4" fill="#fbbf24"/>
+  <rect x="580" y="260" width="60" height="40" rx="4" fill="#fbbf24"/>
+  <circle cx="400" cy="200" r="80" fill="none" stroke="#bfdbfe" stroke-width="2" opacity=".5"/>
+  <circle cx="400" cy="200" r="50" fill="none" stroke="#bfdbfe" stroke-width="1" opacity=".3"/>
+  <text x="400" y="370" text-anchor="middle" font-size="20" fill="#1e40af" font-weight="bold" font-family="sans-serif">浙江树人学院 · 智慧校园</text>
+</svg>

@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>树院智管 · 数据分析报表</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:{50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'}}}}}</script>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="toast-container" class="toast"></div>
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/img/logo.svg" alt="校徽" style="width:48px;margin-bottom:6px">
+      <h1>树院智管</h1>
+      <p>ZJSRU · Smart Campus</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="stock-apply.html" data-page="stock">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        物资申领管理
+      </a>
+      <a href="report-data.html" data-page="report" class="active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        数据分析报表
+      </a>
+      <a href="ai-assistant.html" data-page="ai">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        AI 智能助手
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="top-header">
+      <h2>耗材经费数据分析报表</h2>
+      <div class="user-info">
+        <span id="userName">管理员</span>
+        <div class="avatar" id="userAvatar">管</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="filter-bar">
+        <div class="form-group"><label>起始日期</label><input type="date" id="reportDateStart"></div>
+        <div class="form-group"><label>截止日期</label><input type="date" id="reportDateEnd"></div>
+        <div class="form-group"><label>存放地点</label><select id="reportWarehouse"><option value="">全部地点</option><option value="主存放区">主存放区</option><option value="医学院存放点">医学院存放点</option><option value="计算机存放点">计算机存放点</option><option value="艺术学院存放点">艺术学院存放点</option></select></div>
+        <div class="form-group" style="padding-top:20px">
+          <button class="btn btn-primary btn-sm" onclick="queryReport()">查询</button>
+          <button class="btn btn-outline btn-sm" onclick="resetReport()">重置</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="card stat-card"><div class="label">总耗材数量</div><div class="value" id="totalConsumption">0</div><div class="change up">件</div></div>
+      <div class="card stat-card"><div class="label">总经费支出</div><div class="value" id="totalFunds">¥0</div><div class="change up">元</div></div>
+      <div class="card stat-card"><div class="label">平均损耗率</div><div class="value" id="avgLossRate">0%</div><div class="change" style="color:#a16207">月度统计</div></div>
+      <div class="card stat-card"><div class="label">涉及学院数</div><div class="value" id="deptCount">0</div><div class="change up">个学院</div></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="card">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold text-gray-700">消耗趋势</h3>
+          <div class="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+            <button class="btn btn-sm text-xs px-3" id="viewDay" onclick="toggleTrendView('day')" style="background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.05)">按天</button>
+            <button class="btn btn-sm text-xs px-3" id="viewMonth" onclick="toggleTrendView('month')">按月</button>
+          </div>
+        </div>
+        <div id="trendChart" style="height:280px"></div>
+      </div>
+      <div class="card">
+        <h3 class="font-semibold text-gray-700 mb-4">经费结构</h3>
+        <div id="fundChart" style="height:280px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-semibold text-gray-700">物资消耗排行</h3>
+        <button class="btn btn-outline btn-sm" onclick="exportReport()">导出报告 Excel</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="rankTable">
+          <thead><tr><th>排名</th><th>物资名称</th><th>类型</th><th>消耗数量</th><th>单价(元)</th><th>总金额(元)</th><th>损耗率</th><th class="no-print">操作</th></tr></thead>
+          <tbody id="rankTableBody"></tbody>
+        </table>
+      </div>
+      <div id="rankPagination"></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="rankDetailModal" onclick="Modal.closeOnOverlay(event)">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header"><h3>物资明细</h3><button class="modal-close" onclick="Modal.hide('rankDetailModal')">✕</button></div>
+    <div class="modal-body" id="rankDetailBody"></div>
+    <div class="modal-footer"><button class="btn btn-outline btn-sm" onclick="Modal.hide('rankDetailModal')">关闭</button></div>
+  </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+const reportData = [];
+const allItems = ['实训工作站','医用教学模型','3D打印机','摄影灯光套装','笔记本电脑','投影仪','实验试剂套装','社团活动道具箱'];
+const itemTypeMap = {'实训工作站':'实训设备','医用教学模型':'医用教具','3D打印机':'实训设备','摄影灯光套装':'活动道具','笔记本电脑':'电脑耗材','投影仪':'电脑耗材','实验试剂套装':'医用教具','社团活动道具箱':'活动道具'};
+const itemPrice = {'实训工作站':8800,'医用教学模型':3600,'3D打印机':5200,'摄影灯光套装':2800,'笔记本电脑':6500,'投影仪':4200,'实验试剂套装':1200,'社团活动道具箱':800};
+const warehouses = ['主存放区','医学院存放点','计算机存放点','艺术学院存放点'];
+const depts = ['树兰医学院','数字媒体技术','计算机学院','艺术学院'];
+let trendView = 'day';
+let trendChart = null, fundChart = null;
+
+function initReportData() {
+  for (let d = 1; d <= 30; d++) {
+    const date = `2026-06-${String(d).padStart(2,'0')}`;
+    const count = Math.floor(Math.random() * 5) + 1;
+    for (let i = 0; i < count; i++) {
+      const item = allItems[Math.floor(Math.random() * allItems.length)];
+      reportData.push({
+        date, item, type: itemTypeMap[item], price: itemPrice[item],
+        qty: Math.floor(Math.random() * 10) + 1,
+        warehouse: warehouses[Math.floor(Math.random() * warehouses.length)],
+        dept: depts[Math.floor(Math.random() * depts.length)]
+      });
+    }
+  }
+}
+
+let filteredReport = [];
+
+function queryReport() {
+  const ds = document.getElementById('reportDateStart').value;
+  const de = document.getElementById('reportDateEnd').value;
+  const wh = document.getElementById('reportWarehouse').value;
+
+  filteredReport = reportData.filter(r => {
+    if (ds && r.date < ds) return false;
+    if (de && r.date > de) return false;
+    if (wh && r.warehouse !== wh) return false;
+    return true;
+  });
+
+  updateReportStats();
+  renderTrendChart();
+  renderFundChart();
+  renderRankTable();
+}
+
+function resetReport() {
+  document.querySelectorAll('.filter-bar input, .filter-bar select').forEach(el => el.value = '');
+  filteredReport = [...reportData];
+  queryReport();
+}
+
+function updateReportStats() {
+  const totalQty = filteredReport.reduce((s, r) => s + r.qty, 0);
+  const totalFund = filteredReport.reduce((s, r) => s + r.qty * r.price, 0);
+  const deptSet = new Set(filteredReport.map(r => r.dept));
+
+  document.getElementById('totalConsumption').textContent = totalQty;
+  document.getElementById('totalFunds').textContent = '¥' + totalFund.toLocaleString();
+  document.getElementById('avgLossRate').textContent = (Math.random() * 5 + 1).toFixed(1) + '%';
+  document.getElementById('deptCount').textContent = deptSet.size;
+}
+
+function renderTrendChart() {
+  if (!trendChart) trendChart = echarts.init(document.getElementById('trendChart'));
+  const grouped = {};
+  filteredReport.forEach(r => {
+    const key = trendView === 'day' ? r.date : r.date.slice(0, 7);
+    grouped[key] = (grouped[key] || 0) + r.qty;
+  });
+  const sorted = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]));
+
+  trendChart.setOption({
+    tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>消耗量: ${p[0].value} 件` },
+    grid: { left: 50, right: 20, bottom: 30, top: 20 },
+    xAxis: { type: 'category', data: sorted.map(([k]) => k), axisLabel: { fontSize: 11, rotate: sorted.length > 15 ? 45 : 0 } },
+    yAxis: { type: 'value', name: '消耗量(件)' },
+    color: ['#3b82f6'],
+    series: [{
+      type: 'line', data: sorted.map(([, v]) => v), smooth: true,
+      areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(59,130,246,.3)' }, { offset: 1, color: 'rgba(59,130,246,.02)' }] } },
+      markLine: { data: [{ type: 'average', name: '平均值' }], lineStyle: { color: '#f59e0b', type: 'dashed' } }
+    }]
+  });
+  trendChart.resize();
+}
+
+function toggleTrendView(view) {
+  trendView = view;
+  document.getElementById('viewDay').style.background = view === 'day' ? '#fff' : 'transparent';
+  document.getElementById('viewDay').style.boxShadow = view === 'day' ? '0 1px 2px rgba(0,0,0,.05)' : 'none';
+  document.getElementById('viewMonth').style.background = view === 'month' ? '#fff' : 'transparent';
+  document.getElementById('viewMonth').style.boxShadow = view === 'month' ? '0 1px 2px rgba(0,0,0,.05)' : 'none';
+  renderTrendChart();
+}
+
+function renderFundChart() {
+  if (!fundChart) fundChart = echarts.init(document.getElementById('fundChart'));
+  const grouped = {};
+  filteredReport.forEach(r => {
+    grouped[r.type] = (grouped[r.type] || 0) + r.qty * r.price;
+  });
+  const data = Object.entries(grouped).map(([name, value]) => ({ name, value }));
+  const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444'];
+
+  fundChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
+    legend: { bottom: 0, textStyle: { fontSize: 11 }, selectedMode: true },
+    color: colors,
+    series: [{
+      type: 'pie', radius: ['45%','70%'],
+      label: { show: true, formatter: '{b}', fontSize: 11 },
+      data,
+      emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.2)' } }
+    }]
+  });
+  fundChart.resize();
+}
+
+let rankPage = 1;
+const rankPageSize = 8;
+
+function renderRankTable() {
+  const grouped = {};
+  filteredReport.forEach(r => {
+    if (!grouped[r.item]) grouped[r.item] = { item: r.item, type: r.type, price: r.price, qty: 0, records: [] };
+    grouped[r.item].qty += r.qty;
+    grouped[r.item].records.push(r);
+  });
+
+  let ranked = Object.values(grouped).sort((a, b) => b.qty * b.price - a.qty * a.price);
+  const totalFund = ranked.reduce((s, r) => s + r.qty * r.price, 0);
+
+  const totalQty = ranked.reduce((s, r) => s + r.qty, 0);
+  const start = (rankPage - 1) * rankPageSize;
+  const end = start + rankPageSize;
+  const pageData = ranked.slice(start, end);
+
+  const tbody = document.getElementById('rankTableBody');
+  tbody.innerHTML = pageData.map((r, i) => {
+    const amount = r.qty * r.price;
+    const lossRate = (Math.random() * 8 + 1).toFixed(1);
+    return `<tr>
+      <td>${start + i + 1}</td>
+      <td>${r.item}</td>
+      <td><span class="badge badge-blue">${r.type}</span></td>
+      <td>${r.qty}</td>
+      <td>¥${r.price.toLocaleString()}</td>
+      <td>¥${amount.toLocaleString()}</td>
+      <td>${lossRate}%</td>
+      <td class="no-print"><button class="btn btn-outline btn-sm" onclick="viewRankDetail('${r.item}')">查看明细</button></td>
+    </tr>`;
+  }).join('');
+
+  new Pagination({
+    containerId: 'rankPagination',
+    totalItems: ranked.length,
+    pageSize: rankPageSize,
+    currentPage: rankPage,
+    onPageChange: p => { rankPage = p; renderRankTable(); }
+  });
+}
+
+function viewRankDetail(item) {
+  const records = filteredReport.filter(r => r.item === item).slice(0, 20);
+  document.getElementById('rankDetailBody').innerHTML = `
+    <h4 class="font-semibold mb-3">${item} - 申领明细</h4>
+    <div style="max-height:300px;overflow-y:auto">
+      <table class="data-table"><thead><tr><th>日期</th><th>学院</th><th>数量</th><th>金额</th></tr></thead>
+        <tbody>${records.map(r => `<tr><td>${r.date}</td><td>${r.dept}</td><td>${r.qty}</td><td>¥${(r.qty * r.price).toLocaleString()}</td></tr>`).join('')}
+      </tbody></table>
+    </div>`;
+  Modal.show('rankDetailModal');
+}
+
+function exportReport() {
+  const headers = ['排名','物资名称','类型','消耗数量','单价(元)','总金额(元)','损耗率'];
+  const grouped = {};
+  filteredReport.forEach(r => {
+    if (!grouped[r.item]) grouped[r.item] = { item: r.item, type: r.type, price: r.price, qty: 0 };
+    grouped[r.item].qty += r.qty;
+  });
+  const ranked = Object.values(grouped).sort((a, b) => b.qty * b.price - a.qty * a.price);
+  const rows = ranked.map((r, i) => [i + 1, r.item, r.type, r.qty, r.price, r.qty * r.price, (Math.random() * 8 + 1).toFixed(1) + '%']);
+  exportToExcel('树院智管_月度耗材分析报告', headers, rows);
+}
+
+initReportData();
+resetReport();
+
+const user = getCurrentUser();
+document.getElementById('userName').textContent = user.name;
+document.getElementById('userAvatar').textContent = user.avatar;
+
+window.addEventListener('resize', () => {
+  if (trendChart) trendChart.resize();
+  if (fundChart) fundChart.resize();
+});
+</script>
+</body>
+</html>

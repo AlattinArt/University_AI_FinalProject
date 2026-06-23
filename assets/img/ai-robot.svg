@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#f0f9ff" rx="16"/>
+  <rect x="160" y="80" width="80" height="60" rx="12" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <rect x="180" y="60" width="40" height="25" rx="6" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5"/>
+  <circle cx="195" cy="90" r="5" fill="#1e40af"/>
+  <circle cx="205" cy="90" r="5" fill="#1e40af"/>
+  <rect x="185" y="100" width="30" height="5" rx="2" fill="#3b82f6"/>
+  <rect x="175" y="140" width="50" height="40" rx="6" fill="#dbeafe" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="185" y="155" width="30" height="10" rx="3" fill="#60a5fa"/>
+  <rect x="155" y="180" width="90" height="30" rx="8" fill="#bfdbfe" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="175" y="190" width="50" height="8" rx="3" fill="#3b82f6"/>
+  <circle cx="130" cy="160" r="20" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <circle cx="270" cy="160" r="20" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="150" y1="160" x2="165" y2="150" stroke="#3b82f6" stroke-width="2"/>
+  <line x1="250" y1="150" x2="235" y2="160" stroke="#3b82f6" stroke-width="2"/>
+  <text x="200" y="260" text-anchor="middle" font-size="14" fill="#1e40af" font-family="sans-serif">AI 智能助手 · 通义千问</text>
+</svg>

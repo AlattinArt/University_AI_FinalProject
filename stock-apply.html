@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>树院智管 · 物资申领管理</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:{50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'}}}}}</script>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div id="toast-container" class="toast"></div>
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/img/logo.svg" alt="校徽" style="width:48px;margin-bottom:6px">
+      <h1>树院智管</h1>
+      <p>ZJSRU · Smart Campus</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="stock-apply.html" data-page="stock" class="active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        物资申领管理
+      </a>
+      <a href="report-data.html" data-page="report">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        数据分析报表
+      </a>
+      <a href="ai-assistant.html" data-page="ai">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        AI 智能助手
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="top-header">
+      <h2>物资申领归还管理</h2>
+      <div class="user-info">
+        <span id="userName">管理员</span>
+        <div class="avatar" id="userAvatar">管</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div class="card stat-card"><div class="label">今日申领</div><div class="value" id="todayApply">0</div><div class="change up" id="todayApplyChange">↑ 0%</div></div>
+      <div class="card stat-card"><div class="label">今日归还</div><div class="value" id="todayReturn">0</div><div class="change up" id="todayReturnChange">↑ 0%</div></div>
+      <div class="card stat-card"><div class="label">待审核单据</div><div class="value" id="pendingCount">0</div><div class="change" style="color:#a16207" id="pendingChange">待处理</div></div>
+      <div class="card stat-card"><div class="label">库存物资总数</div><div class="value" id="totalStock">0</div><div class="change up" id="stockChange">↑ 0%</div></div>
+      <div class="card stat-card"><div class="label">本月流转总额</div><div class="value" id="monthTotal">¥0</div><div class="change up" id="monthChange">↑ 0%</div></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div class="lg:col-span-2 card">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-semibold text-gray-700">物资申领 / 归还列表</h3>
+          <div class="flex gap-2">
+            <button class="btn btn-primary" onclick="openApplyModal()">+ 新增申领</button>
+            <button class="btn btn-outline" onclick="exportTableData()">导出 Excel</button>
+          </div>
+        </div>
+        <div class="filter-bar mb-4">
+          <div class="form-group"><label>状态</label><select id="filterStatus"><option value="">全部</option><option value="待审核">待审核</option><option value="已通过">已通过</option><option value="已归还">已归还</option><option value="已拒绝">已拒绝</option></select></div>
+          <div class="form-group"><label>学院</label><select id="filterDept"><option value="">全部</option><option value="树兰医学院">树兰医学院</option><option value="数字媒体技术">数字媒体技术</option><option value="计算机学院">计算机学院</option><option value="艺术学院">艺术学院</option></select></div>
+          <div class="form-group"><label>物资类型</label><select id="filterType"><option value="">全部</option><option value="实训设备">实训设备</option><option value="医用教具">医用教具</option><option value="电脑耗材">电脑耗材</option><option value="活动道具">活动道具</option></select></div>
+          <div class="form-group"><label>起始日期</label><input type="date" id="filterDateStart"></div>
+          <div class="form-group"><label>截止日期</label><input type="date" id="filterDateEnd"></div>
+          <div class="form-group" style="padding-top:20px">
+            <button class="btn btn-primary btn-sm" onclick="applyFilter()">查询</button>
+            <button class="btn btn-outline btn-sm" onclick="resetFilter()">重置</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table" id="stockTable">
+            <thead><tr><th>单据编号</th><th>申领学院</th><th>物资名称</th><th>类型</th><th>数量</th><th>申领日期</th><th>状态</th><th class="no-print">操作</th></tr></thead>
+            <tbody id="stockTableBody"></tbody>
+          </table>
+        </div>
+        <div id="paginationContainer"></div>
+      </div>
+      <div class="card">
+        <h3 class="font-semibold text-gray-700 mb-4">本月物资占比</h3>
+        <div id="typeChart" style="height:300px"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="applyModal" onclick="Modal.closeOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header"><h3>新增物资申领</h3><button class="modal-close" onclick="Modal.hide('applyModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>申领学院 <span class="text-red-500">*</span></label><select id="applyDept"><option value="">请选择学院</option><option value="树兰医学院">树兰医学院</option><option value="数字媒体技术">数字媒体技术</option><option value="计算机学院">计算机学院</option><option value="艺术学院">艺术学院</option></select></div>
+      <div class="form-group"><label>物资名称 <span class="text-red-500">*</span></label><select id="applyItem"><option value="">请选择物资</option><option value="实训工作站">实训工作站</option><option value="医用教学模型">医用教学模型</option><option value="3D打印机">3D打印机</option><option value="摄影灯光套装">摄影灯光套装</option><option value="笔记本电脑">笔记本电脑</option><option value="投影仪">投影仪</option><option value="实验试剂套装">实验试剂套装</option><option value="社团活动道具箱">社团活动道具箱</option></select></div>
+      <div class="form-group"><label>物资类型</label><input id="applyType" readonly class="bg-gray-50"></div>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="form-group"><label>申领数量 <span class="text-red-500">*</span></label><input type="number" id="applyQty" min="1" value="1"></div>
+        <div class="form-group"><label>预计归还日期</label><input type="date" id="applyReturnDate"></div>
+      </div>
+      <div class="form-group"><label>申领说明</label><textarea id="applyNote" rows="2" class="resize-none" placeholder="请简要说明用途..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="Modal.hide('applyModal')">取消</button>
+      <button class="btn btn-primary" onclick="submitApply()">提交申领</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detailModal" onclick="Modal.closeOnOverlay(event)">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><h3>单据详情</h3><button class="modal-close" onclick="Modal.hide('detailModal')">✕</button></div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-sm" onclick="printDetail()">打印</button>
+      <button class="btn btn-outline btn-sm" onclick="Modal.hide('detailModal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+const mockData = [];
+const itemTypes = {
+  '实训工作站':'实训设备','医用教学模型':'医用教具','3D打印机':'实训设备',
+  '摄影灯光套装':'活动道具','笔记本电脑':'电脑耗材','投影仪':'电脑耗材',
+  '实验试剂套装':'医用教具','社团活动道具箱':'活动道具'
+};
+const depts = ['树兰医学院','数字媒体技术','计算机学院','艺术学院'];
+const items = Object.keys(itemTypes);
+const statuses = ['待审核','已通过','已归还','已拒绝'];
+
+function initMockData() {
+  for (let i = 1; i <= 86; i++) {
+    const item = items[Math.floor(Math.random() * items.length)];
+    const dept = depts[Math.floor(Math.random() * depts.length)];
+    const status = statuses[Math.floor(Math.random() * 3)];
+    const day = Math.floor(Math.random() * 28) + 1;
+    mockData.push({
+      id: `ZJSR${String(2026000 + i).slice(-6)}`,
+      dept, item, type: itemTypes[item],
+      qty: Math.floor(Math.random() * 20) + 1,
+      date: `2026-06-${String(day).padStart(2,'0')}`,
+      status,
+      note: `${dept}教学实训使用`
+    });
+  }
+}
+
+let currentPage = 1, pageSize = 10, filteredData = [], detailItem = null;
+
+function renderTable(data) {
+  const tbody = document.getElementById('stockTableBody');
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = data.slice(start, end);
+
+  if (pageData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400">暂无数据</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = pageData.map(r => `<tr>
+    <td class="font-mono text-xs">${r.id}</td>
+    <td>${r.dept}</td>
+    <td>${r.item}</td>
+    <td><span class="badge badge-blue">${r.type}</span></td>
+    <td>${r.qty}</td>
+    <td>${r.date}</td>
+    <td>${statusBadge(r.status)}</td>
+    <td class="no-print">
+      <button class="btn btn-outline btn-sm" onclick="viewDetail('${r.id}')">查看</button>
+      ${r.status === '待审核' ? `<button class="btn btn-success btn-sm ml-1" onclick="approveApply('${r.id}')">通过</button>` : ''}
+    </td>
+  </tr>`).join('');
+}
+
+function statusBadge(s) {
+  const map = {'待审核':'badge-yellow','已通过':'badge-green','已归还':'badge-blue','已拒绝':'badge-red'};
+  return `<span class="badge ${map[s]||'badge-blue'}">${s}</span>`;
+}
+
+function applyFilter() {
+  currentPage = 1;
+  const status = document.getElementById('filterStatus').value;
+  const dept = document.getElementById('filterDept').value;
+  const type = document.getElementById('filterType').value;
+  const ds = document.getElementById('filterDateStart').value;
+  const de = document.getElementById('filterDateEnd').value;
+
+  filteredData = mockData.filter(r => {
+    if (status && r.status !== status) return false;
+    if (dept && r.dept !== dept) return false;
+    if (type && r.type !== type) return false;
+    if (ds && r.date < ds) return false;
+    if (de && r.date > de) return false;
+    return true;
+  });
+
+  renderTable(filteredData);
+  updatePagination();
+}
+
+function resetFilter() {
+  document.querySelectorAll('.filter-bar select, .filter-bar input').forEach(el => el.value = '');
+  currentPage = 1;
+  filteredData = [...mockData];
+  renderTable(filteredData);
+  updatePagination();
+}
+
+function updatePagination() {
+  new Pagination({
+    containerId: 'paginationContainer',
+    totalItems: filteredData.length,
+    pageSize,
+    currentPage,
+    onPageChange: p => { currentPage = p; renderTable(filteredData); updatePagination(); }
+  });
+}
+
+function openApplyModal() {
+  document.getElementById('applyReturnDate').value = getToday();
+  document.getElementById('applyNote').value = '';
+  document.getElementById('applyQty').value = 1;
+  document.getElementById('applyDept').value = '';
+  document.getElementById('applyItem').value = '';
+  document.getElementById('applyType').value = '';
+  Modal.show('applyModal');
+}
+
+document.getElementById('applyItem').addEventListener('change', function() {
+  document.getElementById('applyType').value = itemTypes[this.value] || '';
+});
+
+function submitApply() {
+  const dept = document.getElementById('applyDept').value;
+  const item = document.getElementById('applyItem').value;
+  const qty = parseInt(document.getElementById('applyQty').value);
+  if (!dept) return Toast.error('请选择申领学院');
+  if (!item) return Toast.error('请选择物资');
+  if (!qty || qty < 1) return Toast.error('请输入有效数量');
+
+  mockData.unshift({
+    id: `ZJSR${String(2026999 - mockData.length).slice(-6)}`,
+    dept, item, type: itemTypes[item] || '其他',
+    qty, date: getToday(), status: '待审核',
+    note: document.getElementById('applyNote').value || `${dept}教学实训使用`
+  });
+
+  Modal.hide('applyModal');
+  Toast.success('申领提交成功，等待审核');
+  resetFilter();
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function viewDetail(id) {
+  detailItem = mockData.find(r => r.id === id);
+  if (!detailItem) return;
+  document.getElementById('detailBody').innerHTML = `
+    <div class="space-y-3 text-sm">
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">单据编号</span><span class="font-mono">${escapeHtml(detailItem.id)}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">申领学院</span><span>${escapeHtml(detailItem.dept)}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">物资名称</span><span>${escapeHtml(detailItem.item)}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">物资类型</span><span>${escapeHtml(detailItem.type)}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">申领数量</span><span>${escapeHtml(String(detailItem.qty))}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">申领日期</span><span>${escapeHtml(detailItem.date)}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">状态</span><span>${statusBadge(detailItem.status)}</span></div>
+      <div class="flex justify-between py-1"><span class="text-gray-500">申领说明</span><span>${escapeHtml(detailItem.note)}</span></div>
+    </div>`;
+  Modal.show('detailModal');
+}
+
+function approveApply(id) {
+  const item = mockData.find(r => r.id === id);
+  if (item) { item.status = '已通过'; Toast.success(`单据 ${id} 已审核通过`); }
+  applyFilter();
+}
+
+function printDetail() {
+  if (!detailItem) return;
+  const e = escapeHtml;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>物资申领单</title>
+    <style>
+      body{font-family:'SimSun',serif;padding:40px;font-size:14px}
+      h2{text-align:center;margin-bottom:20px}
+      .info{display:flex;justify-content:space-between;margin-bottom:20px;font-size:13px}
+      table{width:100%;border-collapse:collapse;margin-bottom:20px}
+      th,td{border:1px solid #333;padding:8px 12px;text-align:left}
+      th{background:#f0f0f0}
+      .footer{text-align:center;margin-top:40px;font-size:12px;color:#666}
+    </style></head><body>
+    <h2>浙江树人学院物资申领单</h2>
+    <div class="info"><span>单据编号：${e(detailItem.id)}</span><span>申领日期：${e(detailItem.date)}</span></div>
+    <table><tr><th>申领学院</th><th>物资名称</th><th>类型</th><th>数量</th><th>说明</th></tr>
+    <tr><td>${e(detailItem.dept)}</td><td>${e(detailItem.item)}</td><td>${e(detailItem.type)}</td><td>${e(String(detailItem.qty))}</td><td>${e(detailItem.note)}</td></tr></table>
+    <div style="margin-top:60px;display:flex;justify-content:space-between">
+      <span>申领人签字：_________</span><span>审核人签字：_________</span><span>存放确认：_________</span>
+    </div>
+    <div class="footer">浙江树人学院 · 树院智管系统</div>
+    <script>window.onload=function(){window.print();window.close()}<\/script>
+    </body></html>`);
+  win.document.close();
+}
+
+function exportTableData() {
+  const headers = ['单据编号','申领学院','物资名称','类型','数量','申领日期','状态','说明'];
+  const rows = filteredData.map(r => [r.id, r.dept, r.item, r.type, r.qty, r.date, r.status, r.note]);
+  exportToExcel('树院智管_物资申领记录', headers, rows);
+}
+
+function updateDashboard() {
+  const today = getToday();
+  const todayData = mockData.filter(r => r.date === today);
+  const monthData = mockData.filter(r => r.date.startsWith('2026-06'));
+
+  document.getElementById('todayApply').textContent = todayData.filter(r => r.status !== '已归还').length;
+  document.getElementById('todayReturn').textContent = todayData.filter(r => r.status === '已归还').length;
+  document.getElementById('pendingCount').textContent = mockData.filter(r => r.status === '待审核').length;
+  document.getElementById('totalStock').textContent = mockData.reduce((s, r) => s + r.qty, 0);
+  document.getElementById('monthTotal').textContent = '¥' + (monthData.length * 1280).toLocaleString();
+
+  document.getElementById('todayApplyChange').textContent = '↑ ' + (Math.random() * 20 + 5).toFixed(1) + '%';
+  document.getElementById('todayReturnChange').textContent = '↑ ' + (Math.random() * 15 + 3).toFixed(1) + '%';
+  document.getElementById('stockChange').textContent = '↑ ' + (Math.random() * 10 + 2).toFixed(1) + '%';
+  document.getElementById('monthChange').textContent = '↑ ' + (Math.random() * 12 + 4).toFixed(1) + '%';
+}
+
+function initChart() {
+  const chart = echarts.init(document.getElementById('typeChart'));
+  const typeCount = {};
+  mockData.forEach(r => { typeCount[r.type] = (typeCount[r.type] || 0) + r.qty; });
+  const data = Object.entries(typeCount).map(([name, value]) => ({ name, value }));
+  const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444'];
+
+  chart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c}件 ({d}%)' },
+    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+    color: colors,
+    series: [{
+      type: 'pie', radius: ['40%','70%'], center: ['50%','45%'],
+      label: { show: false },
+      data, emphasis: {
+        itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,.2)' }
+      }
+    }]
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+initMockData();
+resetFilter();
+updateDashboard();
+initChart();
+
+const user = getCurrentUser();
+document.getElementById('userName').textContent = user.name;
+document.getElementById('userAvatar').textContent = user.avatar;
+</script>
+</body>
+</html>

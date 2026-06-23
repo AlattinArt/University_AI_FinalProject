@@ -1,0 +1,12 @@
+{
+  "name": "shuyuan-smart-management",
+  "version": "1.0.0",
+  "description": "浙江树人学院《人工智能》课程大作业 - 树院智管·校园物资智能交互系统",
+  "scripts": {
+    "start": "node proxy/server.js",
+    "dev": "node proxy/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

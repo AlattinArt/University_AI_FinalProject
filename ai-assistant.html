@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>树院智管 · AI 智能助手</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:{50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'}}}}}</script>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+.chat-container{display:flex;flex-direction:column;height:calc(100vh - 140px)}
+.chat-messages{flex:1;overflow-y:auto;padding:16px 0;scroll-behavior:smooth}
+.msg{max-width:80%;padding:12px 16px;border-radius:16px;margin-bottom:10px;font-size:14px;line-height:1.6;animation:fadeIn .3s ease}
+.msg-user{margin-left:auto;background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;border-bottom-right-radius:4px}
+.msg-ai{margin-right:auto;background:#f1f5f9;color:#1e293b;border-bottom-left-radius:4px}
+.msg-system{margin:0 auto;background:#fef9c3;color:#92400e;text-align:center;font-size:12px;padding:8px 16px;border-radius:8px}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.typing-dots{display:inline-flex;gap:4px;padding:4px 0}
+.typing-dots span{width:6px;height:6px;background:#94a3b8;border-radius:50%;animation:bounce 1.4s infinite ease-in-out}
+.typing-dots span:nth-child(2){animation-delay:.16s}
+.typing-dots span:nth-child(3){animation-delay:.32s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+.doc-template-select{width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;background:#fff}
+.mode-tab{padding:8px 16px;font-size:13px;border-radius:8px;cursor:pointer;transition:all .2s;border:none;background:transparent;color:#64748b;font-weight:500}
+.mode-tab.active{background:#dbeafe;color:#1e40af;font-weight:600}
+.mode-tab:hover{background:#f1f5f9}
+.upload-zone{border:2px dashed #93c5fd;border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all .3s}
+.upload-zone:hover{background:#eff6ff;border-color:#3b82f6}
+.upload-zone.dragover{background:#dbeafe;border-color:#2563eb}
+</style>
+</head>
+<body>
+<div id="toast-container" class="toast"></div>
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/img/logo.svg" alt="校徽" style="width:48px;margin-bottom:6px">
+      <h1>树院智管</h1>
+      <p>ZJSRU · Smart Campus</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="stock-apply.html" data-page="stock">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        物资申领管理
+      </a>
+      <a href="report-data.html" data-page="report">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        数据分析报表
+      </a>
+      <a href="ai-assistant.html" data-page="ai" class="active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        AI 智能助手
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="top-header">
+      <h2>AI 智能助手</h2>
+      <div class="user-info">
+        <span id="userName">管理员</span>
+        <div class="avatar" id="userAvatar">管</div>
+      </div>
+    </div>
+
+    <div class="flex gap-2 mb-4">
+      <button class="mode-tab active" data-mode="qa" onclick="switchMode('qa')">💬 智能问答</button>
+      <button class="mode-tab" data-mode="doc" onclick="switchMode('doc')">📄 文书生成</button>
+      <button class="mode-tab" data-mode="data" onclick="switchMode('data')">📊 数据分析</button>
+      <button class="btn btn-outline btn-sm ml-auto" onclick="clearChat()">清空对话</button>
+    </div>
+
+    <div class="card" style="flex:1;display:flex;flex-direction:column">
+      <div class="chat-container">
+        <div class="chat-messages" id="chatMessages">
+          <div class="msg msg-ai">你好！我是树院智管 AI 助手，已对接通义千问大模型。<br>你可以问我以下问题：<br>• 物资申领流程是什么？<br>• 存放点开放时间？<br>• 设备如何报修？<br>• 生成校园标准化文书<br>• 上传CSV进行耗材数据分析</div>
+        </div>
+        <div id="inputArea" class="flex gap-2 items-end pt-3 border-t border-gray-100">
+          <div id="docInputArea" style="display:none" class="flex-1">
+            <select id="docTemplate" class="doc-template-select mb-2"><option value="物资申请单">📋 物资申请单</option><option value="实训器材借用报告">🔬 实训器材借用报告</option><option value="月度耗材总结">📊 月度耗材总结</option><option value="设备报修单">🔧 设备报修单</option></select>
+            <input type="text" id="docPrompt" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-400" placeholder="请输入需求描述，如：我需要申请50台笔记本电脑用于计算机学院实训教学...">
+          </div>
+          <div id="dataInputArea" style="display:none" class="flex-1">
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+              <svg class="mx-auto mb-2" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p class="text-sm text-gray-500">点击上传 Excel 耗材表格</p>
+              <p class="text-xs text-gray-400 mt-1">支持 .csv 格式（可用Excel另存为CSV）</p>
+              <input type="file" id="fileInput" accept=".csv" style="display:none" onchange="handleFileUpload(event)">
+            </div>
+          </div>
+          <div id="qaInputArea" class="flex-1 flex gap-2">
+            <input type="text" id="chatInput" class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-400" placeholder="请输入您的问题..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button class="btn btn-primary" onclick="sendMessage()">发送</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+const API_CONFIG = {
+  proxyUrl: 'http://localhost:3000/api/chat',
+  useLocal: false,
+  localUrl: 'http://localhost:11434/api/chat',
+  localModel: 'qwen3:7b'
+};
+
+let currentMode = 'qa';
+let chatHistory = [];
+let isStreaming = false;
+
+const SYSTEM_PROMPTS = {
+  qa: '你是浙江树人学院"树院智管"校园物资管理系统的AI助手。请只回答与浙江树人学院校园物资管理相关的问题，包括：物资申领流程、存放点开放时间、设备报修规则、实训器材借用、社团物资管理等。对于不相关的问题，请礼貌地引导用户询问校园物资相关话题。回答要简洁、准确、有礼貌。',
+  doc: '你是浙江树人学院校园文书生成助手。请根据用户选择的模板类型和需求描述，生成一份完整的标准化校园文书。要求格式规范、语言正式、内容完整，包含标题、日期、申请部门、具体内容、签字栏等必要组成部分。',
+  data: '你是浙江树人学院耗材数据分析专家。用户会上传耗材数据，请分析数据中的浪费情况、提出节约方案和采购建议。分析要具体、可操作，包括：1) 数据概览 2) 浪费分析 3) 节约方案 4) 采购建议 5) 总结。'
+};
+
+function switchMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+  document.getElementById('qaInputArea').style.display = mode === 'qa' ? 'flex' : 'none';
+  document.getElementById('docInputArea').style.display = mode === 'doc' ? 'block' : 'none';
+  document.getElementById('dataInputArea').style.display = mode === 'data' ? 'block' : 'none';
+}
+
+function addMessage(content, role) {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  div.textContent = content;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function addTypingIndicator() {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'msg msg-ai';
+  div.id = 'typingIndicator';
+  div.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function typeWriter(element, text, speed = 30) {
+  return new Promise(resolve => {
+    let i = 0;
+    element.textContent = '';
+    function type() {
+      if (i < text.length) {
+        element.textContent += text[i];
+        i++;
+        const container = document.getElementById('chatMessages');
+        container.scrollTop = container.scrollHeight;
+        setTimeout(type, speed);
+      } else {
+        resolve();
+      }
+    }
+    type();
+  });
+}
+
+function isRelevantQuestion(text) {
+  const keywords = ['物资','申领','归还','存放','器材','设备','报修','耗材','实训','实验室','办公','采购','报废','库存','学院','树人','校园','资产','借用','申请','经费'];
+  return keywords.some(k => text.includes(k));
+}
+
+function getSystemPrompt() {
+  return SYSTEM_PROMPTS[currentMode] || SYSTEM_PROMPTS.qa;
+}
+
+async function sendMessage() {
+  if (isStreaming) return;
+
+  let userText = '';
+
+  if (currentMode === 'qa') {
+    userText = document.getElementById('chatInput').value.trim();
+    if (!userText) return;
+  } else if (currentMode === 'doc') {
+    const template = document.getElementById('docTemplate').value;
+    const prompt = document.getElementById('docPrompt').value.trim();
+    if (!prompt) return Toast.error('请输入需求描述');
+    userText = `[模板: ${template}] ${prompt}`;
+    document.getElementById('docPrompt').value = '';
+  } else {
+    return;
+  }
+
+  if (currentMode === 'qa' && !isRelevantQuestion(userText)) {
+    addMessage(userText, 'user');
+    document.getElementById('chatInput').value = '';
+    addMessage('抱歉，我是树院智管校园物资管理助手，只能回答与浙江树人学院校园物资管理相关的问题。请咨询物资申领、存放点开放、设备报修、实训器材等方面的问题。', 'ai');
+    return;
+  }
+
+  addMessage(userText, 'user');
+  document.getElementById('chatInput').value = '';
+
+  const messages = [
+    { role: 'system', content: getSystemPrompt() },
+    ...chatHistory.slice(-10).map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userText }
+  ];
+
+  addTypingIndicator();
+  isStreaming = true;
+
+  try {
+    if (API_CONFIG.useLocal) {
+      await callLocalModel(messages);
+    } else {
+      await callProxyAPI(messages);
+    }
+  } catch (err) {
+    removeTypingIndicator();
+    addMessage('抱歉，AI服务暂时不可用。请确认已启动Node中转服务（node proxy/server.js）或将 useLocal 设为 true 以使用本地Ollama。', 'ai');
+  }
+
+  isStreaming = false;
+}
+
+async function callProxyAPI(messages) {
+  const response = await fetch(API_CONFIG.proxyUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages })
+  });
+
+  if (!response.ok) throw new Error('API error');
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  removeTypingIndicator();
+
+  const aiMsg = addMessage('', 'ai');
+  let fullContent = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split('\n');
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+        try {
+          const parsed = JSON.parse(data);
+          if (parsed.content) {
+            fullContent += parsed.content;
+            aiMsg.textContent = fullContent;
+            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+          }
+        } catch {}
+      }
+    }
+  }
+
+  chatHistory.push({ role: 'user', content: messages[messages.length - 1].content });
+  chatHistory.push({ role: 'assistant', content: fullContent });
+  localStorage.setItem('shuyuan_chat_history', JSON.stringify(chatHistory));
+}
+
+async function callLocalModel(messages) {
+  const response = await fetch(API_CONFIG.localUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: API_CONFIG.localModel, messages, stream: true })
+  });
+
+  if (!response.ok) throw new Error('Local API error');
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  removeTypingIndicator();
+
+  const aiMsg = addMessage('', 'ai');
+  let fullContent = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, { stream: true });
+    const lines = chunk.split('\n');
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const parsed = JSON.parse(line);
+        if (parsed.message?.content) {
+          fullContent += parsed.message.content;
+          aiMsg.textContent = fullContent;
+          document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+        }
+      } catch {}
+    }
+  }
+
+  chatHistory.push({ role: 'user', content: messages[messages.length - 1].content });
+  chatHistory.push({ role: 'assistant', content: fullContent });
+  localStorage.setItem('shuyuan_chat_history', JSON.stringify(chatHistory));
+}
+
+function clearChat() {
+  chatHistory = [];
+  localStorage.removeItem('shuyuan_chat_history');
+  document.getElementById('chatMessages').innerHTML = '<div class="msg msg-ai">对话已清空，开始新的咨询吧！</div>';
+  Toast.info('对话历史已清空');
+}
+
+function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  addMessage(`[上传文件] ${file.name}`, 'user');
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const content = e.target.result;
+    const rows = content.split('\n').filter(r => r.trim());
+    if (rows.length < 2) {
+      addMessage('文件格式有误，请上传包含表头的CSV文件。', 'ai');
+      return;
+    }
+
+    const headers = rows[0].split(/[,，\t]/).map(h => h.trim());
+    const dataRows = rows.slice(1).map(r => r.split(/[,，\t]/).map(c => c.trim()));
+
+    let summary = `已解析耗材数据：共 ${dataRows.length} 条记录\n`;
+    summary += `字段：${headers.join('、')}\n\n`;
+    summary += `数据预览（前5条）：\n`;
+    dataRows.slice(0, 5).forEach((row, i) => {
+      summary += `${i + 1}. ${row.join(' | ')}\n`;
+    });
+
+    addTypingIndicator();
+    const messages = [
+      { role: 'system', content: SYSTEM_PROMPTS.data },
+      { role: 'user', content: `请分析以下校园耗材数据，给出浪费分析、节约方案和采购建议：\n\n${summary}` }
+    ];
+
+    try {
+      if (API_CONFIG.useLocal) {
+        await callLocalModel(messages);
+      } else {
+        await callProxyAPI(messages);
+      }
+    } catch (err) {
+      removeTypingIndicator();
+      addMessage(`数据分析完毕！共解析 ${dataRows.length} 条记录。\n\n建议：\n1. 优化耗材采购频次，减少库存积压\n2. 建立学院间耗材共享机制\n3. 定期盘点，避免重复采购\n4. 推荐使用环保可循环耗材`, 'ai');
+    }
+  };
+  reader.readAsText(file);
+}
+
+(function init() {
+  const saved = localStorage.getItem('shuyuan_chat_history');
+  if (saved) {
+    try { chatHistory = JSON.parse(saved); } catch { chatHistory = []; }
+  }
+
+  const user = getCurrentUser();
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userAvatar').textContent = user.avatar;
+
+  const uploadZone = document.getElementById('uploadZone');
+  if (uploadZone) {
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        const input = document.getElementById('fileInput');
+        input.files = e.dataTransfer.files;
+        handleFileUpload({ target: input });
+      }
+    });
+  }
+})();
+</script>
+</body>
+</html>
