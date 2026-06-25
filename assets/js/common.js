@@ -123,6 +123,20 @@ function setNavigationActive(pageId) {
   if (link) link.classList.add('active');
 }
 
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay') || (() => {
+    const el = document.createElement('div');
+    el.id = 'sidebarOverlay';
+    el.style.cssText = 'position:fixed;inset:0;z-index:40;display:none';
+    el.onclick = () => { sidebar.classList.remove('open'); el.style.display = 'none'; };
+    document.body.appendChild(el);
+    return el;
+  })();
+  sidebar.classList.toggle('open');
+  overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+}
+
 function handleLogout() {
   localStorage.removeItem('shuyuan_user');
   localStorage.removeItem('shuyuan_stock_data');

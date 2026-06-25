@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>树院智管 · 物流看板</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:{50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'}}}}}</script>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+.kanban-board{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;min-height:500px}
+.kanban-col{background:#f8fafc;border-radius:12px;padding:12px;display:flex;flex-direction:column;min-height:400px}
+.kanban-col-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 4px}
+.kanban-col-header h3{font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px}
+.kanban-col-count{background:#e2e8f0;color:#475569;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px}
+.kanban-items{flex:1;display:flex;flex-direction:column;gap:8px;min-height:60px;padding:4px;border-radius:8px;transition:background .2s}
+.kanban-items.drag-over{background:#dbeafe}
+.kanban-card{padding:12px;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08);cursor:grab;transition:all .2s;user-select:none;border-left:3px solid transparent}
+.kanban-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.1);transform:translateY(-1px)}
+.kanban-card:active{cursor:grabbing}
+.kanban-card.dragging{opacity:.4;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+.kanban-card .card-id{font-size:11px;font-family:monospace;color:#94a3b8}
+.kanban-card .card-name{font-size:14px;font-weight:600;color:#1e293b;margin:4px 0}
+.kanban-card .card-meta{font-size:12px;color:#64748b;display:flex;justify-content:space-between}
+.kanban-card .card-qty{font-weight:600;color:var(--primary)}
+.kanban-card.card-pending{border-left-color:#f59e0b}
+.kanban-card.card-stock{border-left-color:#3b82f6}
+.kanban-card.card-out{border-left-color:#8b5cf6}
+.kanban-card.card-done{border-left-color:#10b981}
+.add-card-btn{display:flex;align-items:center;justify-content:center;gap:4px;padding:8px;border:2px dashed #cbd5e1;border-radius:8px;background:transparent;color:#64748b;font-size:12px;cursor:pointer;transition:all .2s;margin-top:8px;width:100%}
+.add-card-btn:hover{border-color:var(--primary-light);color:var(--primary);background:#eff6ff}
+.placeholder-ghost{height:60px;border:2px dashed #93c5fd;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;color:var(--primary-light);font-size:13px}
+@media(max-width:1024px){.kanban-board{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.kanban-board{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="toast-container" class="toast"></div>
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/img/logo.svg" alt="校徽" style="width:48px;margin-bottom:6px">
+      <h1>树院智管</h1>
+      <p>ZJSRU · Smart Campus</p>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="stock-apply.html" data-page="stock">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        物资申领管理
+      </a>
+      <a href="logistics.html" data-page="logistics" class="active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        物流看板
+      </a>
+      <a href="report-data.html" data-page="report">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        数据分析报表
+      </a>
+      <a href="ai-assistant.html" data-page="ai">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        AI 智能助手
+      </a>
+    </nav>
+  </aside>
+
+  <main class="main-content">
+    <div class="top-header">
+      <div class="flex items-center gap-3">
+        <button class="hamburger" onclick="toggleSidebar()" aria-label="菜单">☰</button>
+        <h2>物流看板</h2>
+      </div>
+      <div class="user-info">
+        <span id="userName">管理员</span>
+        <div class="avatar" id="userAvatar">管</div>
+        <button class="btn btn-outline btn-sm" onclick="handleLogout()" title="退出登录" style="margin-left:4px">退出</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="card stat-card"><div class="label">待入库</div><div class="value" id="statPending">0</div><div class="change up">等待入库</div></div>
+      <div class="card stat-card"><div class="label">在库中</div><div class="value" id="statStock">0</div><div class="change up">库存中</div></div>
+      <div class="card stat-card"><div class="label">出库中</div><div class="value" id="statOut">0</div><div class="change" style="color:#8b5cf6">运输中</div></div>
+      <div class="card stat-card"><div class="label">已签收</div><div class="value" id="statDone">0</div><div class="change up">本月签收</div></div>
+    </div>
+
+    <div class="flex justify-between items-center mb-4">
+      <div class="flex gap-2">
+        <input type="text" id="searchInput" placeholder="搜索货物名称或单号..." class="px-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:border-primary-400 w-64" oninput="filterCards()">
+        <button class="btn btn-outline btn-sm" onclick="resetFilter()">重置</button>
+      </div>
+      <button class="btn btn-primary" onclick="openAddModal()">+ 新增货物</button>
+    </div>
+
+    <div class="kanban-board" id="kanbanBoard">
+      <div class="kanban-col" data-col="pending">
+        <div class="kanban-col-header">
+          <h3><span style="color:#f59e0b">●</span> 待入库</h3>
+          <span class="kanban-col-count" id="countPending">0</span>
+        </div>
+        <div class="kanban-items" id="itemsPending" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+        <button class="add-card-btn" onclick="openAddModal('pending')">+ 添加入库</button>
+      </div>
+      <div class="kanban-col" data-col="stock">
+        <div class="kanban-col-header">
+          <h3><span style="color:#3b82f6">●</span> 在库中</h3>
+          <span class="kanban-col-count" id="countStock">0</span>
+        </div>
+        <div class="kanban-items" id="itemsStock" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+      </div>
+      <div class="kanban-col" data-col="out">
+        <div class="kanban-col-header">
+          <h3><span style="color:#8b5cf6">●</span> 出库中</h3>
+          <span class="kanban-col-count" id="countOut">0</span>
+        </div>
+        <div class="kanban-items" id="itemsOut" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+      </div>
+      <div class="kanban-col" data-col="done">
+        <div class="kanban-col-header">
+          <h3><span style="color:#10b981">●</span> 已签收</h3>
+          <span class="kanban-col-count" id="countDone">0</span>
+        </div>
+        <div class="kanban-items" id="itemsDone" ondrop="drop(event)" ondragover="allowDrop(event)" ondragleave="dragLeave(event)"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="addModal" onclick="Modal.closeOnOverlay(event)">
+  <div class="modal">
+    <div class="modal-header"><h3>新增物流货物</h3><button class="modal-close" onclick="Modal.hide('addModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label>货物名称 <span class="text-red-500">*</span></label><input type="text" id="addName" placeholder="如：笔记本电脑、实训器材"></div>
+      <div class="form-group"><label>数量 <span class="text-red-500">*</span></label><input type="number" id="addQty" min="1" value="1"></div>
+      <div class="form-group"><label>来源/目的地</label><input type="text" id="addLocation" placeholder="如：计算机学院、供应商A"></div>
+      <div class="form-group"><label>状态</label><select id="addStatus"><option value="pending">待入库</option><option value="stock">在库中</option><option value="out">出库中</option></select></div>
+      <div class="form-group"><label>备注</label><input type="text" id="addNote" placeholder="可选备注信息"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="Modal.hide('addModal')">取消</button>
+      <button class="btn btn-primary" onclick="submitAdd()">确认添加</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detailModal" onclick="Modal.closeOnOverlay(event)">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header"><h3>货物详情</h3><button class="modal-close" onclick="Modal.hide('detailModal')">✕</button></div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" onclick="Modal.hide('detailModal')">关闭</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCurrentItem()">删除</button>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script>
+const COLUMNS = ['pending', 'stock', 'out', 'done'];
+const COL_LABELS = { pending: '待入库', stock: '在库中', out: '出库中', done: '已签收' };
+const COL_CLASS = { pending: 'card-pending', stock: 'card-stock', out: 'card-out', done: 'card-done' };
+const COL_ICON = { pending: '📦', stock: '🏪', out: '🚚', done: '✅' };
+
+let items = [];
+let currentDetailId = null;
+
+function initData() {
+  const saved = localStorage.getItem('shuyuan_logistics_data');
+  if (saved) {
+    try { items = JSON.parse(saved); renderAll(); return; } catch {}
+  }
+  const names = ['笔记本电脑', '投影仪', '实验试剂套装', '社团道具箱', '实训工作站', '医用教学模型', '3D打印机', '摄影灯光套装'];
+  const locs = ['计算机学院', '树兰医学院', '生环学院', '马克思学院', '艺术学院', '供应商A', '供应商B'];
+  for (let i = 1; i <= 12; i++) {
+    const status = COLUMNS[Math.floor(Math.random() * 4)];
+    items.push({
+      id: 'LOG' + String(2026000 + i).slice(-6),
+      name: names[Math.floor(Math.random() * names.length)],
+      qty: Math.floor(Math.random() * 50) + 5,
+      location: locs[Math.floor(Math.random() * locs.length)],
+      status,
+      note: '',
+      updated: new Date(Date.now() - Math.random() * 7 * 86400000).toISOString().slice(0, 10)
+    });
+  }
+  saveData();
+  renderAll();
+}
+
+function saveData() {
+  localStorage.setItem('shuyuan_logistics_data', JSON.stringify(items));
+}
+
+function getContainer(col) {
+  return document.getElementById('items' + col.charAt(0).toUpperCase() + col.slice(1));
+}
+
+function renderAll() {
+  COLUMNS.forEach(c => renderColumn(c));
+  updateStats();
+}
+
+function renderColumn(col) {
+  const container = getContainer(col);
+  const filtered = items.filter(i => i.status === col && (!currentSearch || i.name.includes(currentSearch) || i.id.includes(currentSearch)));
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="placeholder-ghost">拖拽货物到此处</div>';
+  } else {
+    container.innerHTML = filtered.map(i => createCard(i)).join('');
+  }
+  document.getElementById('count' + col.charAt(0).toUpperCase() + col.slice(1)).textContent = items.filter(i => i.status === col).length;
+  container.querySelectorAll('.kanban-card').forEach(card => {
+    card.addEventListener('dragstart', dragStart);
+    card.addEventListener('dragend', dragEnd);
+  });
+}
+
+function createCard(item) {
+  return `<div class="kanban-card ${COL_CLASS[item.status]}" draggable="true" data-id="${item.id}" onclick="showDetail('${item.id}')">
+    <div class="card-id">${item.id}</div>
+    <div class="card-name">${item.name}</div>
+    <div class="card-meta">
+      <span>× ${item.qty}</span>
+      <span>${item.location || '-'}</span>
+    </div>
+    <div class="card-meta" style="margin-top:4px;font-size:11px;color:#94a3b8">${item.updated || ''}</div>
+  </div>`;
+}
+
+let currentSearch = '';
+
+function filterCards() {
+  currentSearch = document.getElementById('searchInput').value.trim();
+  renderAll();
+}
+
+function resetFilter() {
+  document.getElementById('searchInput').value = '';
+  currentSearch = '';
+  renderAll();
+}
+
+/* ===== 拖拽 ===== */
+let draggedId = null;
+
+function allowDrop(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+
+function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+
+function dragStart(e) {
+  draggedId = e.currentTarget.dataset.id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', draggedId);
+}
+
+function dragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.kanban-items').forEach(el => el.classList.remove('drag-over'));
+}
+
+function drop(e) {
+  e.preventDefault();
+  const targetCol = e.currentTarget.parentElement.dataset.col;
+  if (!targetCol || !draggedId) return;
+  const item = items.find(i => i.id === draggedId);
+  if (item && item.status !== targetCol) {
+    item.status = targetCol;
+    item.updated = getToday();
+    saveData();
+    renderAll();
+    Toast.success(COL_ICON[targetCol] + ' 已移至 ' + COL_LABELS[targetCol]);
+  }
+  draggedId = null;
+  document.querySelectorAll('.kanban-items').forEach(el => el.classList.remove('drag-over'));
+}
+
+/* ===== 统计 ===== */
+function updateStats() {
+  document.getElementById('statPending').textContent = items.filter(i => i.status === 'pending').length;
+  document.getElementById('statStock').textContent = items.filter(i => i.status === 'stock').length;
+  document.getElementById('statOut').textContent = items.filter(i => i.status === 'out').length;
+  document.getElementById('statDone').textContent = items.filter(i => i.status === 'done').length;
+}
+
+/* ===== 新增 ===== */
+function openAddModal(defaultStatus) {
+  document.getElementById('addName').value = '';
+  document.getElementById('addQty').value = 1;
+  document.getElementById('addLocation').value = '';
+  document.getElementById('addStatus').value = defaultStatus || 'pending';
+  document.getElementById('addNote').value = '';
+  Modal.show('addModal');
+}
+
+function submitAdd() {
+  const name = document.getElementById('addName').value.trim();
+  const qty = parseInt(document.getElementById('addQty').value);
+  const location = document.getElementById('addLocation').value.trim();
+  const status = document.getElementById('addStatus').value;
+  const note = document.getElementById('addNote').value.trim();
+  if (!name) return Toast.error('请输入货物名称');
+  if (!qty || qty < 1) return Toast.error('请输入有效数量');
+  const id = 'LOG' + String(2026999 - items.length).slice(-6);
+  items.push({ id, name, qty, location, status, note, updated: getToday() });
+  saveData();
+  Modal.hide('addModal');
+  renderAll();
+  Toast.success('✅ 已添加：' + name + ' × ' + qty);
+}
+
+/* ===== 详情 / 删除 ===== */
+function showDetail(id) {
+  currentDetailId = id;
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('detailBody').innerHTML = `
+    <div class="space-y-3 text-sm">
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">单号</span><span class="font-mono">${item.id}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">货物</span><span>${item.name}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">数量</span><span>${item.qty}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">来源/目的地</span><span>${item.location || '-'}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">状态</span><span>${COL_ICON[item.status]} ${COL_LABELS[item.status]}</span></div>
+      <div class="flex justify-between py-1 border-b"><span class="text-gray-500">更新时间</span><span>${item.updated || '-'}</span></div>
+      <div class="flex justify-between py-1"><span class="text-gray-500">备注</span><span>${item.note || '无'}</span></div>
+    </div>`;
+  Modal.show('detailModal');
+}
+
+function deleteCurrentItem() {
+  if (!currentDetailId) return;
+  if (!confirm('确认删除此货物？')) return;
+  items = items.filter(i => i.id !== currentDetailId);
+  saveData();
+  Modal.hide('detailModal');
+  renderAll();
+  Toast.info('已删除');
+}
+
+/* ===== 初始化 ===== */
+(function init() {
+  const user = getCurrentUser();
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userAvatar').textContent = user.avatar;
+  initData();
+})();
+</script>
+</body>
+</html>

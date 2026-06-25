@@ -28,6 +28,10 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
         数据分析报表
       </a>
+      <a href="logistics.html" data-page="logistics">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        物流看板
+      </a>
       <a href="ai-assistant.html" data-page="ai">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
         AI 智能助手
@@ -37,7 +41,10 @@
 
   <main class="main-content">
     <div class="top-header">
-      <h2>耗材经费数据分析报表</h2>
+      <div class="flex items-center gap-3">
+        <button class="hamburger" onclick="toggleSidebar()" aria-label="菜单">☰</button>
+        <h2>耗材经费数据分析报表</h2>
+      </div>
       <div class="user-info">
         <span id="userName">管理员</span>
         <div class="avatar" id="userAvatar">管</div>
@@ -50,18 +57,38 @@
         <div class="form-group"><label>起始日期</label><input type="date" id="reportDateStart"></div>
         <div class="form-group"><label>截止日期</label><input type="date" id="reportDateEnd"></div>
         <div class="form-group"><label>存放地点</label><select id="reportWarehouse"><option value="">全部地点</option><option value="主存放区">主存放区</option><option value="医学院存放点">医学院存放点</option><option value="计算机存放点">计算机存放点</option><option value="艺术学院存放点">艺术学院存放点</option></select></div>
+        <div class="form-group"><label>学院</label><select id="reportDept"><option value="">全部学院</option><option value="树兰医学院">树兰医学院</option><option value="马克思学院">马克思学院</option><option value="生环学院">生环学院</option><option value="计算机学院">计算机学院</option><option value="艺术学院">艺术学院</option></select></div>
+        <div class="form-group"><label>物资类型</label><select id="reportType"><option value="">全部类型</option><option value="实训设备">实训设备</option><option value="医用教具">医用教具</option><option value="电脑耗材">电脑耗材</option><option value="活动道具">活动道具</option></select></div>
         <div class="form-group" style="padding-top:20px">
+          <div class="flex gap-1 mb-1.5 flex-wrap">
+            <button class="btn btn-outline btn-xs" onclick="reportQuickDate('today')">今日</button>
+            <button class="btn btn-outline btn-xs" onclick="reportQuickDate('week')">本周</button>
+            <button class="btn btn-outline btn-xs" onclick="reportQuickDate('month')">本月</button>
+            <button class="btn btn-outline btn-xs" onclick="reportQuickDate('prevMonth')">上月</button>
+          </div>
           <button class="btn btn-primary btn-sm" onclick="queryReport()">查询</button>
           <button class="btn btn-outline btn-sm" onclick="resetReport()">重置</button>
         </div>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div class="card stat-card"><div class="label">总耗材数量</div><div class="value" id="totalConsumption">0</div><div class="change up">件</div></div>
-      <div class="card stat-card"><div class="label">总经费支出</div><div class="value" id="totalFunds">¥0</div><div class="change up">元</div></div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+      <div class="card stat-card"><div class="label">总耗材数量</div><div class="value" id="totalConsumption">0</div><div class="change up" id="qtyChange">件</div></div>
+      <div class="card stat-card"><div class="label">总经费支出</div><div class="value" id="totalFunds">¥0</div><div class="change up" id="fundChange">元</div></div>
       <div class="card stat-card"><div class="label">平均损耗率</div><div class="value" id="avgLossRate">0%</div><div class="change" style="color:#a16207">月度统计</div></div>
       <div class="card stat-card"><div class="label">涉及学院数</div><div class="value" id="deptCount">0</div><div class="change up">个学院</div></div>
+      <div class="card stat-card"><div class="label">最高消耗物资</div><div class="value" id="topItem" style="font-size:1rem">-</div><div class="change up" id="topItemQty">-</div></div>
+      <div class="card stat-card"><div class="label">最活跃学院</div><div class="value" id="activeDept" style="font-size:1rem">-</div><div class="change up" id="activeDeptCount">-</div></div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+      <div class="card p-3 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center" style="background:rgba(59,130,246,.1)" id="qtyChangeIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></div>
+        <div><div class="text-xs font-semibold text-gray-500">总耗材 · 本期 vs 上期</div><div class="text-lg font-bold mt-0.5" id="qtyChangeLabel" style="color:#059669">待筛选</div></div>
+      </div>
+      <div class="card p-3 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center" style="background:rgba(16,185,129,.1)" id="fundChangeIcon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></div>
+        <div><div class="text-xs font-semibold text-gray-500">总经费 · 本期 vs 上期</div><div class="text-lg font-bold mt-0.5" id="fundChangeLabel" style="color:#059669">待筛选</div></div>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -81,6 +108,16 @@
       </div>
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="card">
+        <h3 class="font-semibold text-gray-700 mb-4">学院消耗对比</h3>
+        <div id="deptRadarChart" style="height:280px"></div>
+      </div>
+      <div class="card">
+        <h3 class="font-semibold text-gray-700 mb-4">存放地点消耗分布</h3>
+        <div id="warehouseChart" style="height:280px"></div>
+      </div>
+    </div>
     <div class="card">
       <div class="flex justify-between items-center mb-4">
         <h3 class="font-semibold text-gray-700">物资消耗排行</h3>
@@ -88,7 +125,16 @@
       </div>
       <div style="overflow-x:auto">
         <table class="data-table" id="rankTable">
-          <thead><tr><th>排名</th><th>物资名称</th><th>类型</th><th>消耗数量</th><th>单价(元)</th><th>总金额(元)</th><th>损耗率</th><th class="no-print">操作</th></tr></thead>
+          <thead><tr>
+            <th data-sort="rank" class="sortable">排名 <span class="sort-arrow"></span></th>
+            <th data-sort="name" class="sortable">物资名称 <span class="sort-arrow"></span></th>
+            <th data-sort="type" class="sortable">类型 <span class="sort-arrow"></span></th>
+            <th data-sort="qty" class="sortable">消耗数量 <span class="sort-arrow"></span></th>
+            <th data-sort="price" class="sortable">单价(元) <span class="sort-arrow"></span></th>
+            <th data-sort="amount" class="sortable">总金额(元) <span class="sort-arrow"></span></th>
+            <th data-sort="loss" class="sortable">损耗率 <span class="sort-arrow"></span></th>
+            <th class="no-print">操作</th>
+          </tr></thead>
           <tbody id="rankTableBody"></tbody>
         </table>
       </div>
@@ -112,7 +158,7 @@ const allItems = ['实训工作站','医用教学模型','3D打印机','摄影�
 const itemTypeMap = {'实训工作站':'实训设备','医用教学模型':'医用教具','3D打印机':'实训设备','摄影灯光套装':'活动道具','笔记本电脑':'电脑耗材','投影仪':'电脑耗材','实验试剂套装':'医用教具','社团活动道具箱':'活动道具'};
 const itemPrice = {'实训工作站':8800,'医用教学模型':3600,'3D打印机':5200,'摄影灯光套装':2800,'笔记本电脑':6500,'投影仪':4200,'实验试剂套装':1200,'社团活动道具箱':800};
 const warehouses = ['主存放区','医学院存放点','计算机存放点','艺术学院存放点'];
-const depts = ['树兰医学院','数字媒体技术','计算机学院','艺术学院'];
+const depts = ['树兰医学院','马克思学院','生环学院','计算机学院','艺术学院'];
 let trendView = 'day';
 let trendChart = null, fundChart = null;
 
@@ -148,11 +194,15 @@ function queryReport() {
   const ds = document.getElementById('reportDateStart').value;
   const de = document.getElementById('reportDateEnd').value;
   const wh = document.getElementById('reportWarehouse').value;
+  const dept = document.getElementById('reportDept').value;
+  const type = document.getElementById('reportType').value;
 
   filteredReport = reportData.filter(r => {
     if (ds && r.date < ds) return false;
     if (de && r.date > de) return false;
     if (wh && r.warehouse !== wh) return false;
+    if (dept && r.dept !== dept) return false;
+    if (type && r.type !== type) return false;
     return true;
   });
 
@@ -160,11 +210,26 @@ function queryReport() {
   renderTrendChart();
   renderFundChart();
   renderRankTable();
+  renderAllReportCharts();
 }
 
 function resetReport() {
   document.querySelectorAll('.filter-bar input, .filter-bar select').forEach(el => el.value = '');
   filteredReport = [...reportData];
+  queryReport();
+}
+
+function reportQuickDate(range) {
+  const now = new Date();
+  let start, end;
+  switch (range) {
+    case 'today': start = end = now; break;
+    case 'week': { const day = now.getDay(); start = new Date(now); start.setDate(now.getDate() - (day === 0 ? 6 : day - 1)); end = now; break; }
+    case 'month': start = new Date(now.getFullYear(), now.getMonth(), 1); end = now; break;
+    case 'prevMonth': start = new Date(now.getFullYear(), now.getMonth() - 1, 1); end = new Date(now.getFullYear(), now.getMonth(), 0); break;
+  }
+  document.getElementById('reportDateStart').value = formatDate(start);
+  document.getElementById('reportDateEnd').value = formatDate(end);
   queryReport();
 }
 
@@ -177,10 +242,72 @@ function updateReportStats() {
   document.getElementById('totalFunds').textContent = '¥' + totalFund.toLocaleString();
   document.getElementById('avgLossRate').textContent = (Math.random() * 5 + 1).toFixed(1) + '%';
   document.getElementById('deptCount').textContent = deptSet.size;
+
+  const itemGroups = {};
+  filteredReport.forEach(r => { itemGroups[r.item] = (itemGroups[r.item] || 0) + r.qty; });
+  const topItem = Object.entries(itemGroups).sort((a, b) => b[1] - a[1])[0];
+
+  const deptCounts = {};
+  filteredReport.forEach(r => { deptCounts[r.dept] = (deptCounts[r.dept] || 0) + 1; });
+  const topDept = Object.entries(deptCounts).sort((a, b) => b[1] - a[1])[0];
+
+  document.getElementById('topItem').textContent = topItem ? topItem[0] : '-';
+  document.getElementById('topItemQty').textContent = topItem ? topItem[1] + '件' : '-';
+  document.getElementById('activeDept').textContent = topDept ? topDept[0] : '-';
+  document.getElementById('activeDeptCount').textContent = topDept ? topDept[1] + '次' : '-';
+
+  const ds = document.getElementById('reportDateStart').value;
+  const de = document.getElementById('reportDateEnd').value;
+  let qtyChangeText = '-', fundChangeText = '-';
+  if (ds && de) {
+    const startDate = new Date(ds), endDate = new Date(de);
+    const rangeMs = endDate - startDate;
+    const prevEnd = new Date(startDate.getTime() - 86400000);
+    const prevStart = new Date(prevEnd.getTime() - rangeMs);
+    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const prevData = reportData.filter(r => r.date >= fmt(prevStart) && r.date <= fmt(prevEnd));
+    const prevQty = prevData.reduce((s, r) => s + r.qty, 0);
+    const prevFund = prevData.reduce((s, r) => s + r.qty * r.price, 0);
+    const qtyCh = prevQty ? ((totalQty - prevQty) / prevQty * 100) : 0;
+    const fundCh = prevFund ? ((totalFund - prevFund) / prevFund * 100) : 0;
+    qtyChangeText = (qtyCh >= 0 ? '↑' : '↓') + ' ' + Math.abs(qtyCh).toFixed(1) + '%';
+    fundChangeText = (fundCh >= 0 ? '↑' : '↓') + ' ' + Math.abs(fundCh).toFixed(1) + '%';
+    document.getElementById('qtyChange').textContent = qtyChangeText;
+    document.getElementById('qtyChange').className = 'change ' + (qtyCh >= 0 ? 'up' : 'down');
+    document.getElementById('fundChange').textContent = fundChangeText;
+    document.getElementById('fundChange').className = 'change ' + (fundCh >= 0 ? 'up' : 'down');
+    const qtyIcon = document.getElementById('qtyChangeIcon');
+    qtyIcon.innerHTML = qtyCh >= 0
+      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+    qtyIcon.style.background = qtyCh >= 0 ? 'rgba(5,150,105,.1)' : 'rgba(220,38,38,.1)';
+    const fundIcon = document.getElementById('fundChangeIcon');
+    fundIcon.innerHTML = fundCh >= 0
+      ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
+    fundIcon.style.background = fundCh >= 0 ? 'rgba(5,150,105,.1)' : 'rgba(220,38,38,.1)';
+  }
+  document.getElementById('qtyChangeLabel').textContent = qtyChangeText;
+  document.getElementById('fundChangeLabel').textContent = fundChangeText;
 }
 
 function renderTrendChart() {
-  if (!trendChart) trendChart = echarts.init(document.getElementById('trendChart'));
+  if (!trendChart) {
+    trendChart = echarts.init(document.getElementById('trendChart'));
+    trendChart.on('click', function(p) {
+      const val = p.name;
+      if (trendView === 'day') {
+        document.getElementById('reportDateStart').value = val;
+        document.getElementById('reportDateEnd').value = val;
+      } else {
+        document.getElementById('reportDateStart').value = val + '-01';
+        const [y, m] = val.split('-');
+        const last = new Date(+y, +m, 0).getDate();
+        document.getElementById('reportDateEnd').value = val + '-' + String(last).padStart(2,'0');
+      }
+      queryReport();
+    });
+  }
   const grouped = {};
   filteredReport.forEach(r => {
     const key = trendView === 'day' ? r.date : r.date.slice(0, 7);
@@ -189,6 +316,7 @@ function renderTrendChart() {
   const sorted = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]));
 
   trendChart.setOption({
+    toolbox: { feature: { saveAsImage: { title: '保存为图片' } }, right: 10, top: 5 },
     tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>消耗量: ${p[0].value} 件` },
     grid: { left: 50, right: 20, bottom: 30, top: 20 },
     xAxis: { type: 'category', data: sorted.map(([k]) => k), axisLabel: { fontSize: 11, rotate: sorted.length > 15 ? 45 : 0 } },
@@ -222,6 +350,7 @@ function renderFundChart() {
   const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444'];
 
   fundChart.setOption({
+    toolbox: { feature: { saveAsImage: { title: '保存为图片' } }, right: 10, top: 5 },
     tooltip: { trigger: 'item', formatter: '{b}: ¥{c} ({d}%)' },
     legend: { bottom: 0, textStyle: { fontSize: 11 }, selectedMode: true },
     color: colors,
@@ -235,8 +364,96 @@ function renderFundChart() {
   fundChart.resize();
 }
 
+let deptRadarChart = null, warehouseChart = null;
+
+function renderDeptRadarChart() {
+  if (!deptRadarChart) deptRadarChart = echarts.init(document.getElementById('deptRadarChart'));
+  const stats = {};
+  filteredReport.forEach(r => {
+    if (!stats[r.dept]) stats[r.dept] = { qty: 0, fund: 0, count: 0, items: new Set() };
+    stats[r.dept].qty += r.qty;
+    stats[r.dept].fund += r.qty * r.price;
+    stats[r.dept].count++;
+    stats[r.dept].items.add(r.item);
+  });
+  const names = Object.keys(stats);
+  const maxQty = Math.max(...names.map(d => stats[d].qty), 1);
+  const maxFund = Math.max(...names.map(d => stats[d].fund), 1);
+  const maxCount = Math.max(...names.map(d => stats[d].count), 1);
+  const maxItems = Math.max(...names.map(d => stats[d].items.size), 1);
+  const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444'];
+  deptRadarChart.setOption({
+    toolbox: { feature: { saveAsImage: { title: '保存为图片' } }, right: 10, top: 5 },
+    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+    radar: {
+      indicator: [
+        { name: '消耗数量', max: maxQty },
+        { name: '经费总额', max: maxFund },
+        { name: '申领次数', max: maxCount },
+        { name: '物品种类', max: maxItems }
+      ],
+      radius: '60%', axisName: { fontSize: 11 },
+      splitArea: { areaStyle: { color: ['rgba(59,130,246,.02)','rgba(59,130,246,.06)'] } }
+    },
+    color: colors,
+    series: [{
+      type: 'radar',
+      data: names.map((name, i) => ({
+        name,
+        value: [stats[name].qty, stats[name].fund, stats[name].count, stats[name].items.size],
+        areaStyle: { opacity: 0.15 }
+      }))
+    }]
+  });
+  deptRadarChart.resize();
+}
+
+function renderWarehouseChart() {
+  if (!warehouseChart) {
+    warehouseChart = echarts.init(document.getElementById('warehouseChart'));
+    warehouseChart.on('click', function(p) {
+      document.getElementById('reportWarehouse').value = p.name;
+      queryReport();
+    });
+  }
+  const grouped = {};
+  filteredReport.forEach(r => { grouped[r.warehouse] = (grouped[r.warehouse] || 0) + r.qty; });
+  const data = Object.entries(grouped).map(([name, value]) => ({ name, value }));
+  const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444'];
+  warehouseChart.setOption({
+    toolbox: { feature: { saveAsImage: { title: '保存为图片' } }, right: 10, top: 5 },
+    tooltip: { trigger: 'item', formatter: '{b}: {c}件 ({d}%)' },
+    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+    color: colors,
+    series: [{ type: 'pie', radius: ['40%','70%'], label: { show: true, formatter: '{b}', fontSize: 11 }, data }]
+  });
+  warehouseChart.resize();
+}
+
+function renderAllReportCharts() { renderDeptRadarChart(); renderWarehouseChart(); }
+
 let rankPage = 1;
 const rankPageSize = 8;
+let rankSort = { key: 'amount', dir: 'desc' };
+
+function sortRanked(data) {
+  const { key, dir } = rankSort;
+  return [...data].sort((a, b) => {
+    let va, vb;
+    switch (key) {
+      case 'rank': va = a._rank; vb = b._rank; break;
+      case 'name': va = a.item; vb = b.item; break;
+      case 'type': va = a.type; vb = b.type; break;
+      case 'qty': va = a.qty; vb = b.qty; break;
+      case 'price': va = a.price; vb = b.price; break;
+      case 'amount': va = a.qty * a.price; vb = b.qty * b.price; break;
+      case 'loss': va = a._loss; vb = b._loss; break;
+      default: va = a.qty * a.price; vb = b.qty * b.price;
+    }
+    if (typeof va === 'number') return dir === 'asc' ? va - vb : vb - va;
+    return dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+}
 
 function renderRankTable() {
   const grouped = {};
@@ -247,17 +464,19 @@ function renderRankTable() {
   });
 
   let ranked = Object.values(grouped).sort((a, b) => b.qty * b.price - a.qty * a.price);
+  ranked.forEach((r, i) => { r._rank = i + 1; r._loss = parseFloat((Math.random() * 8 + 1).toFixed(1)); });
   const totalFund = ranked.reduce((s, r) => s + r.qty * r.price, 0);
 
-  const totalQty = ranked.reduce((s, r) => s + r.qty, 0);
+  const sorted = sortRanked(ranked);
+  const totalQty = sorted.reduce((s, r) => s + r.qty, 0);
   const start = (rankPage - 1) * rankPageSize;
   const end = start + rankPageSize;
-  const pageData = ranked.slice(start, end);
+  const pageData = sorted.slice(start, end);
 
   const tbody = document.getElementById('rankTableBody');
   tbody.innerHTML = pageData.map((r, i) => {
     const amount = r.qty * r.price;
-    const lossRate = (Math.random() * 8 + 1).toFixed(1);
+    const arrow = document.querySelector('#rankTable thead [data-sort="' + rankSort.key + '"] .sort-arrow');
     return `<tr>
       <td>${start + i + 1}</td>
       <td>${r.item}</td>
@@ -265,7 +484,7 @@ function renderRankTable() {
       <td>${r.qty}</td>
       <td>¥${r.price.toLocaleString()}</td>
       <td>¥${amount.toLocaleString()}</td>
-      <td>${lossRate}%</td>
+      <td>${r._loss}%</td>
       <td class="no-print"><button class="btn btn-outline btn-sm" onclick="viewRankDetail('${r.item}')">查看明细</button></td>
     </tr>`;
   }).join('');
@@ -313,7 +532,23 @@ document.getElementById('userAvatar').textContent = user.avatar;
 window.addEventListener('resize', () => {
   if (trendChart) trendChart.resize();
   if (fundChart) fundChart.resize();
+  if (deptRadarChart) deptRadarChart.resize();
+  if (warehouseChart) warehouseChart.resize();
 });
+
+/* 排行表排序 */
+document.getElementById('rankTable').querySelector('thead').addEventListener('click', function(e) {
+  const th = e.target.closest('[data-sort]');
+  if (!th) return;
+  const key = th.dataset.sort;
+  if (rankSort.key === key) rankSort.dir = rankSort.dir === 'asc' ? 'desc' : 'asc';
+  else rankSort = { key, dir: 'desc' };
+  document.querySelectorAll('#rankTable thead .sort-arrow').forEach(el => el.textContent = '');
+  const arrow = th.querySelector('.sort-arrow');
+  arrow.textContent = rankSort.dir === 'asc' ? '▲' : '▼';
+  renderRankTable();
+});
+
 </script>
 </body>
 </html>

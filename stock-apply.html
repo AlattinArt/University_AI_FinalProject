@@ -29,6 +29,9 @@
 .ai-ir input:focus{border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
 .ai-ir button{padding:8px 14px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500}
 .ai-ir button:hover{background:var(--primary-dark)}
+.s-cell{height:16px;background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:s 1.5s infinite;border-radius:4px}
+@keyframes s{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.stat-skel{display:inline-block;width:80px;height:26px;background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:s 1.5s infinite;border-radius:4px}
 </style>
 </head>
 <body>
@@ -46,6 +49,10 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
         物资申领管理
       </a>
+      <a href="logistics.html" data-page="logistics">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        物流看板
+      </a>
       <a href="report-data.html" data-page="report">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
         数据分析报表
@@ -59,7 +66,10 @@
 
   <main class="main-content">
     <div class="top-header">
-      <h2>物资申领归还管理</h2>
+      <div class="flex items-center gap-3">
+        <button class="hamburger" onclick="toggleSidebar()" aria-label="菜单">☰</button>
+        <h2>物资申领归还管理</h2>
+      </div>
       <div class="user-info">
         <span id="userName">管理员</span>
         <div class="avatar" id="userAvatar">管</div>
@@ -81,23 +91,48 @@
           <h3 class="font-semibold text-gray-700">物资申领 / 归还列表</h3>
           <div class="flex gap-2">
             <button class="btn btn-primary" onclick="openApplyModal()">+ 新增申领</button>
+            <button class="btn btn-outline btn-sm" id="undoBtn" onclick="undo()" disabled title="撤销 Ctrl+Z">↩</button>
+            <button class="btn btn-outline btn-sm" id="redoBtn" onclick="redo()" disabled title="重做 Ctrl+Shift+Z">↪</button>
             <button class="btn btn-outline" onclick="exportTableData()">导出 Excel</button>
           </div>
         </div>
         <div class="filter-bar mb-4">
           <div class="form-group"><label>状态</label><select id="filterStatus"><option value="">全部</option><option value="待审核">待审核</option><option value="已通过">已通过</option><option value="已归还">已归还</option><option value="已拒绝">已拒绝</option></select></div>
-          <div class="form-group"><label>学院</label><select id="filterDept"><option value="">全部</option><option value="树兰医学院">树兰医学院</option><option value="数字媒体技术">数字媒体技术</option><option value="计算机学院">计算机学院</option><option value="艺术学院">艺术学院</option></select></div>
+          <div class="form-group"><label>学院</label><select id="filterDept"><option value="">全部</option><option value="树兰医学院">树兰医学院</option><option value="马克思学院">马克思学院</option><option value="生环学院">生环学院</option><option value="计算机学院">计算机学院</option><option value="艺术学院">艺术学院</option></select></div>
           <div class="form-group"><label>物资类型</label><select id="filterType"><option value="">全部</option><option value="实训设备">实训设备</option><option value="医用教具">医用教具</option><option value="电脑耗材">电脑耗材</option><option value="活动道具">活动道具</option></select></div>
           <div class="form-group"><label>起始日期</label><input type="date" id="filterDateStart"></div>
           <div class="form-group"><label>截止日期</label><input type="date" id="filterDateEnd"></div>
           <div class="form-group" style="padding-top:20px">
+            <div class="flex gap-1 mb-1.5 flex-wrap">
+              <button class="btn btn-outline btn-xs" onclick="quickDate('today')">今日</button>
+              <button class="btn btn-outline btn-xs" onclick="quickDate('week')">本周</button>
+              <button class="btn btn-outline btn-xs" onclick="quickDate('month')">本月</button>
+              <button class="btn btn-outline btn-xs" onclick="quickDate('prevMonth')">上月</button>
+            </div>
             <button class="btn btn-primary btn-sm" onclick="applyFilter()">查询</button>
             <button class="btn btn-outline btn-sm" onclick="resetFilter()">重置</button>
           </div>
         </div>
+        <div class="flex items-center gap-3 mb-3 no-print">
+          <label class="flex items-center gap-1.5 text-sm cursor-pointer select-none">
+            <input type="checkbox" id="selectAll" onchange="toggleSelectAll()"> 全选
+          </label>
+          <button class="btn btn-success btn-xs" id="batchApproveBtn" onclick="batchApprove()" disabled>批量通过</button>
+          <span class="text-xs text-gray-400" id="batchCount"></span>
+        </div>
         <div style="overflow-x:auto">
           <table class="data-table" id="stockTable">
-            <thead><tr><th>单据编号</th><th>申领学院</th><th>物资名称</th><th>类型</th><th>数量</th><th>申领日期</th><th>状态</th><th class="no-print">操作</th></tr></thead>
+            <thead><tr>
+              <th class="no-print" style="width:32px"></th>
+              <th data-sort="id" class="sortable">单据编号 <span class="sort-arrow"></span></th>
+              <th data-sort="dept" class="sortable">申领学院 <span class="sort-arrow"></span></th>
+              <th data-sort="item" class="sortable">物资名称 <span class="sort-arrow"></span></th>
+              <th data-sort="type" class="sortable">类型 <span class="sort-arrow"></span></th>
+              <th data-sort="qty" class="sortable">数量 <span class="sort-arrow"></span></th>
+              <th data-sort="date" class="sortable">申领日期 <span class="sort-arrow"></span></th>
+              <th data-sort="status" class="sortable">状态 <span class="sort-arrow"></span></th>
+              <th class="no-print">操作</th>
+            </tr></thead>
             <tbody id="stockTableBody"></tbody>
           </table>
         </div>
@@ -107,6 +142,20 @@
         <h3 class="font-semibold text-gray-700 mb-4">本月物资占比</h3>
         <div id="typeChart" style="height:300px"></div>
       </div>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div class="card">
+        <h3 class="font-semibold text-gray-700 mb-4">每日申领趋势</h3>
+        <div id="trendChart" style="height:280px"></div>
+      </div>
+      <div class="card">
+        <h3 class="font-semibold text-gray-700 mb-4">单据状态分布</h3>
+        <div id="statusChart" style="height:280px"></div>
+      </div>
+    </div>
+    <div class="card mb-6">
+      <h3 class="font-semibold text-gray-700 mb-4">学院申领排行</h3>
+      <div id="deptChart" style="height:260px"></div>
     </div>
   </main>
 </div>
@@ -141,7 +190,7 @@
   <div class="modal">
     <div class="modal-header"><h3>新增物资申领</h3><button class="modal-close" onclick="Modal.hide('applyModal')">✕</button></div>
     <div class="modal-body">
-      <div class="form-group"><label>申领学院 <span class="text-red-500">*</span></label><select id="applyDept"><option value="">请选择学院</option><option value="树兰医学院">树兰医学院</option><option value="数字媒体技术">数字媒体技术</option><option value="计算机学院">计算机学院</option><option value="艺术学院">艺术学院</option></select></div>
+      <div class="form-group"><label>申领学院 <span class="text-red-500">*</span></label><select id="applyDept"><option value="">请选择学院</option><option value="树兰医学院">树兰医学院</option><option value="马克思学院">马克思学院</option><option value="生环学院">生环学院</option><option value="计算机学院">计算机学院</option><option value="艺术学院">艺术学院</option></select></div>
       <div class="form-group"><label>物资名称 <span class="text-red-500">*</span></label><select id="applyItem"><option value="">请选择物资</option><option value="实训工作站">实训工作站</option><option value="医用教学模型">医用教学模型</option><option value="3D打印机">3D打印机</option><option value="摄影灯光套装">摄影灯光套装</option><option value="笔记本电脑">笔记本电脑</option><option value="投影仪">投影仪</option><option value="实验试剂套装">实验试剂套装</option><option value="社团活动道具箱">社团活动道具箱</option></select></div>
       <div class="form-group"><label>物资类型</label><input id="applyType" readonly class="bg-gray-50"></div>
       <div class="grid grid-cols-2 gap-4">
@@ -176,7 +225,7 @@ const itemTypes = {
   '摄影灯光套装':'活动道具','笔记本电脑':'电脑耗材','投影仪':'电脑耗材',
   '实验试剂套装':'医用教具','社团活动道具箱':'活动道具'
 };
-const depts = ['树兰医学院','数字媒体技术','计算机学院','艺术学院'];
+const depts = ['树兰医学院','马克思学院','生环学院','计算机学院','艺术学院'];
 const items = Object.keys(itemTypes);
 const statuses = ['待审核','已通过','已归还','已拒绝'];
 
@@ -190,16 +239,20 @@ function initMockData() {
       return;
     } catch {}
   }
+  const now = new Date();
+  const yr = now.getFullYear();
+  const mo = String(now.getMonth() + 1).padStart(2, '0');
+  const daysInMonth = new Date(yr, now.getMonth() + 1, 0).getDate();
   for (let i = 1; i <= 86; i++) {
     const item = items[Math.floor(Math.random() * items.length)];
     const dept = depts[Math.floor(Math.random() * depts.length)];
     const status = statuses[Math.floor(Math.random() * 3)];
-    const day = Math.floor(Math.random() * 28) + 1;
+    const day = String(Math.floor(Math.random() * daysInMonth) + 1).padStart(2, '0');
     mockData.push({
-      id: `ZJSR${String(2026000 + i).slice(-6)}`,
+      id: `ZJSR${String(yr * 1000 + i).slice(-6)}`,
       dept, item, type: itemTypes[item],
       qty: Math.floor(Math.random() * 20) + 1,
-      date: `2026-06-${String(day).padStart(2,'0')}`,
+      date: `${yr}-${mo}-${day}`,
       status,
       note: `${dept}教学实训使用`
     });
@@ -208,19 +261,31 @@ function initMockData() {
 }
 
 let currentPage = 1, pageSize = 10, filteredData = [], detailItem = null;
+let sortConfig = { key: 'date', dir: 'desc' };
+
+function sortData(data) {
+  const { key, dir } = sortConfig;
+  return [...data].sort((a, b) => {
+    const va = a[key], vb = b[key];
+    if (typeof va === 'number') return dir === 'asc' ? va - vb : vb - va;
+    return dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+}
 
 function renderTable(data) {
   const tbody = document.getElementById('stockTableBody');
   const start = (currentPage - 1) * pageSize;
   const end = start + pageSize;
-  const pageData = data.slice(start, end);
+  const sorted = sortData(data);
+  const pageData = sorted.slice(start, end);
 
   if (pageData.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-gray-400">暂无数据</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-gray-400">暂无数据</td></tr>`;
     return;
   }
 
   tbody.innerHTML = pageData.map(r => `<tr>
+    <td class="no-print"><input type="checkbox" class="row-checkbox" data-id="${r.id}" ${selectedIds.has(r.id) ? 'checked' : ''} onchange="toggleRow(this)"></td>
     <td class="font-mono text-xs">${r.id}</td>
     <td>${r.dept}</td>
     <td>${r.item}</td>
@@ -242,6 +307,9 @@ function statusBadge(s) {
 
 function applyFilter() {
   currentPage = 1;
+  selectedIds.clear();
+  document.getElementById('selectAll') && (document.getElementById('selectAll').checked = false);
+  if (document.getElementById('batchCount')) document.getElementById('batchCount').textContent = '';
   const status = document.getElementById('filterStatus').value;
   const dept = document.getElementById('filterDept').value;
   const type = document.getElementById('filterType').value;
@@ -259,6 +327,8 @@ function applyFilter() {
 
   renderTable(filteredData);
   updatePagination();
+  renderAllCharts();
+  updateSortArrows();
 }
 
 function resetFilter() {
@@ -267,6 +337,30 @@ function resetFilter() {
   filteredData = [...mockData];
   renderTable(filteredData);
   updatePagination();
+  renderAllCharts();
+}
+
+function quickDate(range) {
+  const now = new Date();
+  let start, end;
+  switch (range) {
+    case 'today':
+      start = end = now; break;
+    case 'week': {
+      const day = now.getDay();
+      start = new Date(now); start.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+      end = now; break;
+    }
+    case 'month':
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = now; break;
+    case 'prevMonth':
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 0); break;
+  }
+  document.getElementById('filterDateStart').value = formatDate(start);
+  document.getElementById('filterDateEnd').value = formatDate(end);
+  applyFilter();
 }
 
 function updatePagination() {
@@ -301,6 +395,7 @@ function submitApply() {
   if (!item) return Toast.error('请选择物资');
   if (!qty || qty < 1) return Toast.error('请输入有效数量');
 
+  pushSnapshot();
   mockData.unshift({
     id: `ZJSR${String(2026999 - mockData.length).slice(-6)}`,
     dept, item, type: itemTypes[item] || '其他',
@@ -316,6 +411,88 @@ function submitApply() {
 
 function saveStockData() {
   localStorage.setItem('shuyuan_stock_data', JSON.stringify(mockData));
+}
+
+/* ===== 撤销/重做 ===== */
+const undoStack = [];
+const redoStack = [];
+const MAX_UNDO = 30;
+
+function pushSnapshot() {
+  undoStack.push(JSON.stringify(mockData));
+  redoStack.length = 0;
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  const u = document.getElementById('undoBtn');
+  const r = document.getElementById('redoBtn');
+  if (u) u.disabled = false;
+  if (r) r.disabled = true;
+}
+
+function undo() {
+  if (undoStack.length === 0) return;
+  redoStack.push(JSON.stringify(mockData));
+  const prev = JSON.parse(undoStack.pop());
+  mockData.length = 0; mockData.push(...prev);
+  saveStockData(); applyFilter(); updateDashboard(); initChart();
+  document.getElementById('undoBtn').disabled = undoStack.length === 0;
+  document.getElementById('redoBtn').disabled = false;
+  Toast.info('已撤销');
+}
+
+function redo() {
+  if (redoStack.length === 0) return;
+  undoStack.push(JSON.stringify(mockData));
+  const next = JSON.parse(redoStack.pop());
+  mockData.length = 0; mockData.push(...next);
+  saveStockData(); applyFilter(); updateDashboard(); initChart();
+  document.getElementById('undoBtn').disabled = false;
+  document.getElementById('redoBtn').disabled = redoStack.length === 0;
+  Toast.info('已重做');
+}
+
+function renderTableSkeleton() {
+  const td = '<td><div class="s-cell">&nbsp;</div></td>';
+  document.getElementById('stockTableBody').innerHTML = Array(5).fill('<tr>' + td.repeat(9) + '</tr>').join('');
+  document.querySelectorAll('.stat-card .value').forEach(el => el.innerHTML = '<span class="stat-skel">&nbsp;</span>');
+}
+
+/* ===== 批量选择 ===== */
+let selectedIds = new Set();
+
+function toggleRow(cb) {
+  if (cb.checked) selectedIds.add(cb.dataset.id);
+  else selectedIds.delete(cb.dataset.id);
+  updateBatchBar();
+}
+
+function toggleSelectAll() {
+  const checked = document.getElementById('selectAll').checked;
+  document.querySelectorAll('.row-checkbox').forEach(cb => {
+    cb.checked = checked;
+    if (checked) selectedIds.add(cb.dataset.id);
+    else selectedIds.delete(cb.dataset.id);
+  });
+  updateBatchBar();
+}
+
+function updateBatchBar() {
+  const pending = mockData.filter(r => selectedIds.has(r.id) && r.status === '待审核').length;
+  document.getElementById('batchApproveBtn').disabled = pending === 0;
+  document.getElementById('batchCount').textContent = selectedIds.size > 0 ? `已选 ${selectedIds.size} 项（可审核 ${pending} 项）` : '';
+}
+
+function batchApprove() {
+  if (selectedIds.size === 0) return;
+  pushSnapshot();
+  let count = 0;
+  mockData.forEach(r => {
+    if (selectedIds.has(r.id) && r.status === '待审核') { r.status = '已通过'; count++; }
+  });
+  saveStockData();
+  selectedIds.clear();
+  document.getElementById('selectAll').checked = false;
+  Toast.success(`批量通过 ${count} 条单据`);
+  applyFilter();
 }
 
 function escapeHtml(str) {
@@ -343,7 +520,7 @@ function viewDetail(id) {
 
 function approveApply(id) {
   const item = mockData.find(r => r.id === id);
-  if (item) { item.status = '已通过'; saveStockData(); Toast.success(`单据 ${id} 已审核通过`); }
+  if (item) { pushSnapshot(); item.status = '已通过'; saveStockData(); Toast.success(`单据 ${id} 已审核通过`); }
   applyFilter();
 }
 
@@ -383,7 +560,8 @@ function exportTableData() {
 function updateDashboard() {
   const today = getToday();
   const todayData = mockData.filter(r => r.date === today);
-  const monthData = mockData.filter(r => r.date.startsWith('2026-06'));
+  const monthPrefix = today.slice(0, 7);
+  const monthData = mockData.filter(r => r.date.startsWith(monthPrefix));
 
   document.getElementById('todayApply').textContent = todayData.filter(r => r.status !== '已归还').length;
   document.getElementById('todayReturn').textContent = todayData.filter(r => r.status === '已归还').length;
@@ -419,14 +597,126 @@ function initChart() {
   window.addEventListener('resize', () => chart.resize());
 }
 
-initMockData();
-resetFilter();
-updateDashboard();
-initChart();
+/* ===== 图表渲染 ===== */
+let trendChart = null, statusChart = null, deptChart = null;
 
-const user = getCurrentUser();
-document.getElementById('userName').textContent = user.name;
-document.getElementById('userAvatar').textContent = user.avatar;
+function renderTrendChart() {
+  if (!trendChart) {
+    trendChart = echarts.init(document.getElementById('trendChart'));
+    trendChart.on('click', function(p) {
+      document.getElementById('filterDateStart').value = p.name;
+      document.getElementById('filterDateEnd').value = p.name;
+      applyFilter();
+    });
+  }
+  const grouped = {};
+  filteredData.forEach(r => { grouped[r.date] = (grouped[r.date] || 0) + r.qty; });
+  const sorted = Object.entries(grouped).sort((a, b) => a[0].localeCompare(b[0]));
+  trendChart.setOption({
+    tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>${p[0].value} 件` },
+    grid: { left: 50, right: 20, bottom: 30, top: 20 },
+    xAxis: { type: 'category', data: sorted.map(([k]) => k), axisLabel: { fontSize: 11, rotate: sorted.length > 10 ? 45 : 0 } },
+    yAxis: { type: 'value', name: '数量(件)' },
+    color: ['#3b82f6'],
+    series: [{ type: 'bar', data: sorted.map(([, v]) => v), barMaxWidth: 28, itemStyle: { borderRadius: [4,4,0,0] } }]
+  });
+  trendChart.resize();
+}
+
+function renderStatusChart() {
+  if (!statusChart) {
+    statusChart = echarts.init(document.getElementById('statusChart'));
+    statusChart.on('click', function(p) {
+      for (const o of document.getElementById('filterStatus').options) {
+        if (o.value === p.name) { o.selected = true; break; }
+      }
+      applyFilter();
+    });
+  }
+  const count = {};
+  mockData.forEach(r => { count[r.status] = (count[r.status] || 0) + r.qty; });
+  const data = statuses.map(s => ({ name: s, value: count[s] || 0 }));
+  const colorMap = { '待审核': '#f59e0b', '已通过': '#10b981', '已归还': '#3b82f6', '已拒绝': '#ef4444' };
+  statusChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c}件 ({d}%)' },
+    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+    color: statuses.map(s => colorMap[s]),
+    series: [{
+      type: 'pie', radius: ['50%','70%'], center: ['50%','45%'],
+      label: { show: false }, data,
+      emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.2)' } }
+    }]
+  });
+  statusChart.resize();
+}
+
+function renderDeptChart() {
+  if (!deptChart) {
+    deptChart = echarts.init(document.getElementById('deptChart'));
+    deptChart.on('click', function(p) {
+      document.getElementById('filterDept').value = p.name;
+      applyFilter();
+    });
+  }
+  const count = {};
+  filteredData.forEach(r => { count[r.dept] = (count[r.dept] || 0) + r.qty; });
+  const sorted = Object.entries(count).sort((a, b) => b[1] - a[1]);
+  deptChart.setOption({
+    tooltip: { trigger: 'axis', formatter: p => `${p[0].axisValue}<br/>${p[0].value} 件` },
+    grid: { left: 100, right: 30, bottom: 20, top: 20 },
+    xAxis: { type: 'value', name: '数量(件)' },
+    yAxis: { type: 'category', data: sorted.map(([k]) => k), axisLabel: { fontSize: 12 } },
+    color: ['#3b82f6'],
+    series: [{ type: 'bar', data: sorted.map(([, v]) => v), barMaxWidth: 22, itemStyle: { borderRadius: [0,4,4,0] } }]
+  });
+  deptChart.resize();
+}
+
+function renderAllCharts() { renderTrendChart(); renderStatusChart(); renderDeptChart(); }
+
+function updateSortArrows() {
+  document.querySelectorAll('#stockTable thead .sortable').forEach(th => {
+    const arrow = th.querySelector('.sort-arrow');
+    arrow.textContent = th.dataset.sort === sortConfig.key ? (sortConfig.dir === 'asc' ? '▲' : '▼') : '';
+  });
+}
+
+document.getElementById('stockTable').querySelector('thead').addEventListener('click', function(e) {
+  const th = e.target.closest('[data-sort]');
+  if (!th) return;
+  const key = th.dataset.sort;
+  if (sortConfig.key === key) sortConfig.dir = sortConfig.dir === 'asc' ? 'desc' : 'asc';
+  else sortConfig = { key, dir: 'desc' };
+  applyFilter();
+});
+
+/* 骨架屏 → 加载真实数据 */
+renderTableSkeleton();
+requestAnimationFrame(() => setTimeout(() => {
+  initMockData();
+  resetFilter();
+  updateDashboard();
+  initChart();
+  renderAllCharts();
+
+  const user = getCurrentUser();
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('userAvatar').textContent = user.avatar;
+}, 200));
+
+/* ===== 清理 localStorage 脏数据 ===== */
+(function cleanStorage() {
+  try {
+    const raw = localStorage.getItem('shuyuan_stock_data');
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    const validDepts = ['树兰医学院','马克思学院','生环学院','计算机学院','艺术学院'];
+    const clean = data.filter(r => validDepts.includes(r.dept));
+    if (clean.length !== data.length) {
+      localStorage.setItem('shuyuan_stock_data', JSON.stringify(clean));
+    }
+  } catch {}
+})();
 
 /* ===== AI 物资管理助手 ===== */
 function toggleAI() {
@@ -450,15 +740,13 @@ function aiQuick(cmd) {
 }
 
 function aiFindDept(s) {
-  for (const d of depts) { if (s.includes(d) || d.includes(s)) return d; }
-  for (const d of depts) { for (let i = 0; i < s.length - 1; i++) { if (d.includes(s[i])) return d; } }
+  for (const d of depts) { if (d.includes(s) || s.includes(d)) return d; }
   return '';
 }
 
 function aiFindItem(s) {
-  for (const it of items) { if (s.includes(it) || it.includes(s)) return it; }
-  for (const it of items) { for (let i = 0; i < s.length - 1; i++) { if (it.includes(s[i])) return it; } }
-  return items[0];
+  for (const it of items) { if (it.includes(s) || s.includes(it)) return it; }
+  return '';
 }
 
 function aiSend() {
@@ -470,81 +758,16 @@ function aiSend() {
 
   const t = text;
 
-  /* 1. 新增申领 */
-  const addRe = t.match(/^(?:新增|添加|创建)(?:申领)?\s*(.+?)\s+(.+?)\s+(\d+)/);
-  if (addRe) {
-    const dept = aiFindDept(addRe[1]);
-    const item = aiFindItem(addRe[2]);
-    const qty = parseInt(addRe[3]);
-    if (dept && qty > 0) {
-      mockData.unshift({
-        id: 'ZJSR' + String(2026999 - mockData.length).slice(-6),
-        dept, item, type: itemTypes[item] || '其他',
-        qty, date: getToday(), status: '待审核',
-        note: 'AI 自助申领'
-      });
-      saveStockData(); resetFilter(); updateDashboard();
-      aiAddMsg('✅ 已创建：' + dept + ' - ' + item + ' × ' + qty, 'ai');
-      return;
-    }
-  }
-
-  /* 2. 审核通过 */
-  if (t.includes('通过') || t.includes('批准') || t.includes('审核')) {
-    let deptF = '', itemF = '';
-    for (const d of depts) { if (t.includes(d)) { deptF = d; break; } }
-    for (const it of items) { if (t.includes(it)) { itemF = it; break; } }
-    const pending = mockData.filter(r => r.status === '待审核' && (!deptF || r.dept === deptF) && (!itemF || r.item === itemF));
-    if (pending.length) {
-      pending.forEach(r => r.status = '已通过');
-      saveStockData(); applyFilter(); updateDashboard(); initChart();
-      aiAddMsg('✅ 已通过 ' + pending.length + ' 条待审核单据' + (deptF ? '（' + deptF + '）' : ''), 'ai');
-    } else {
-      aiAddMsg('❌ 没有找到符合条件的待审核单据', 'ai');
-    }
+  /* 快捷指令 - 精确匹配（快速按钮触发的操作） */
+  if (t === '新增申领') { openApplyModal(); aiAddMsg('已打开新增申领表单', 'ai'); return; }
+  if (t === '审核待处理') {
+    for (const o of document.getElementById('filterStatus').options) { if (o.value === '待审核') { o.selected = true; break; } }
+    applyFilter();
+    aiAddMsg('已筛选待审核单据，共 ' + filteredData.length + ' 条', 'ai');
     return;
   }
-
-  /* 3. 归还 */
-  if (t.includes('归还')) {
-    const returned = mockData.filter(r => r.status === '已通过');
-    if (returned.length) {
-      returned.forEach(r => r.status = '已归还');
-      saveStockData(); applyFilter(); updateDashboard();
-      aiAddMsg('✅ 已将 ' + returned.length + ' 条已通过单据标记为已归还', 'ai');
-    } else {
-      aiAddMsg('❌ 没有已通过的单据需要归还', 'ai');
-    }
-    return;
-  }
-
-  /* 4. 筛选显示 */
-  if (t.startsWith('显示') || t.startsWith('查看') || t.startsWith('搜索') || t.startsWith('筛选')) {
-    let applied = false;
-    for (const d of depts) {
-      if (t.includes(d)) { document.getElementById('filterDept').value = d; applied = true; break; }
-    }
-    for (const s of statuses) {
-      if (t.includes(s)) {
-        for (const o of document.getElementById('filterStatus').options) { if (o.value === s) { o.selected = true; applied = true; break; } }
-        break;
-      }
-    }
-    for (const it of items) {
-      if (t.includes(it)) {
-        const type = itemTypes[it];
-        for (const o of document.getElementById('filterType').options) { if (o.value === type) { o.selected = true; applied = true; break; } }
-        break;
-      }
-    }
-    if (t.includes('全部')) { resetFilter(); aiAddMsg('📋 已显示全部数据（共 ' + mockData.length + ' 条）', 'ai'); return; }
-    if (applied) { applyFilter(); aiAddMsg('🔍 已筛选，共 ' + filteredData.length + ' 条结果', 'ai'); return; }
-    aiAddMsg('未识别到筛选条件，试试：显示 计算机学院、查看 电脑耗材', 'ai');
-    return;
-  }
-
-  /* 5. 统计 */
-  if (t.includes('统计') || t.includes('汇总') || t.includes('概览') || t === '数据统计') {
+  if (t === '显示全部') { resetFilter(); aiAddMsg('📋 已显示全部数据（共 ' + mockData.length + ' 条）', 'ai'); return; }
+  if (t === '数据统计') {
     const p = mockData.filter(r => r.status === '待审核').length;
     const ap = mockData.filter(r => r.status === '已通过').length;
     const re = mockData.filter(r => r.status === '已归还').length;
@@ -553,30 +776,119 @@ function aiSend() {
     return;
   }
 
-  /* 6. 导出 */
-  if (t.includes('导出')) { exportTableData(); aiAddMsg('📥 已触发数据导出', 'ai'); return; }
-
-  /* 7. 新增申领 - 打开模态框 */
-  if (t === '新增申领') { openApplyModal(); aiAddMsg('已打开新增申领表单', 'ai'); return; }
-
-  /* 8. 审核待处理 - 筛选待审核 */
-  if (t === '审核待处理') {
-    for (const o of document.getElementById('filterStatus').options) { if (o.value === '待审核') { o.selected = true; break; } }
-    applyFilter();
-    aiAddMsg('已筛选待审核单据，共 ' + filteredData.length + ' 条', 'ai');
-    return;
-  }
-
-  /* 未匹配 → 调 AI API */
+  /* 其余全部交给 AI 理解语义 */
   aiCallAPI(t);
 }
 
+window.addEventListener('resize', () => {
+  if (trendChart) trendChart.resize();
+  if (statusChart) statusChart.resize();
+  if (deptChart) deptChart.resize();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+    if (e.key === 'z' && e.shiftKey) { e.preventDefault(); redo(); return; }
+    if (e.key === 'y') { e.preventDefault(); redo(); return; }
+  }
+  switch (e.key) {
+    case 'n': case 'N': e.preventDefault(); openApplyModal(); break;
+    case 'f': case 'F': e.preventDefault(); document.getElementById('filterStatus').focus(); break;
+    case 'r': case 'R': e.preventDefault(); resetFilter(); Toast.info('已重置筛选'); break;
+    case 'e': case 'E': e.preventDefault(); exportTableData(); break;
+    case 'Escape':
+      document.querySelectorAll('.modal-overlay.show').forEach(m => m.classList.remove('show'));
+      if (document.getElementById('aiPanel').classList.contains('open')) toggleAI();
+      break;
+  }
+});
+
+function aiExecAction(action) {
+  try {
+    switch (action.action) {
+      case 'add': {
+        if (!action.dept || !action.item || !action.qty) return false;
+        const dept = aiFindDept(action.dept);
+        const item = aiFindItem(action.item);
+        const qty = parseInt(action.qty);
+        if (!dept) { aiAddMsg('❌ 未知学院："' + action.dept + '"（可选：树兰医学院、马克思学院、生环学院、计算机学院、艺术学院）', 'ai'); return true; }
+        if (!item) { aiAddMsg('❌ 未知物资："' + action.item + '"', 'ai'); return true; }
+        if (!qty || qty < 1) return false;
+        pushSnapshot();
+        mockData.unshift({
+          id: 'ZJSR' + String(2026999 - mockData.length).slice(-6),
+          dept, item, type: itemTypes[item] || '其他',
+          qty, date: action.date || getToday(), status: '待审核',
+          note: 'AI 自助申领'
+        });
+        saveStockData(); resetFilter(); updateDashboard();
+        const dateLabel = action.date ? ` (${action.date})` : '';
+        aiAddMsg('✅ AI 已执行：' + dept + ' - ' + item + ' × ' + qty + dateLabel, 'ai');
+        return true;
+      }
+      case 'approve': {
+        let pending = mockData.filter(r => r.status === '待审核');
+        if (action.dept) pending = pending.filter(r => r.dept === aiFindDept(action.dept) || r.dept.includes(action.dept));
+        if (action.item) pending = pending.filter(r => r.item === aiFindItem(action.item) || r.item.includes(action.item));
+        if (!pending.length) { aiAddMsg('❌ 没有找到符合条件的待审核单据', 'ai'); return true; }
+        pushSnapshot();
+        pending.forEach(r => r.status = '已通过');
+        saveStockData(); applyFilter(); updateDashboard(); initChart();
+        aiAddMsg('✅ AI 已执行：通过 ' + pending.length + ' 条待审核单据', 'ai');
+        return true;
+      }
+      case 'return': {
+        const returned = mockData.filter(r => r.status === '已通过');
+        if (!returned.length) { aiAddMsg('❌ 没有已通过的单据需要归还', 'ai'); return true; }
+        pushSnapshot();
+        returned.forEach(r => r.status = '已归还');
+        saveStockData(); applyFilter(); updateDashboard();
+        aiAddMsg('✅ AI 已执行：归还 ' + returned.length + ' 条单据', 'ai');
+        return true;
+      }
+      case 'export': {
+        exportTableData();
+        aiAddMsg('📥 AI 已触发数据导出', 'ai');
+        return true;
+      }
+      case 'filter': {
+        const statusEl = document.getElementById('filterStatus');
+        const deptEl = document.getElementById('filterDept');
+        const typeEl = document.getElementById('filterType');
+        if (action.status) { for (const o of statusEl.options) { if (o.value === action.status) { o.selected = true; break; } } }
+        if (action.dept) { for (const o of deptEl.options) { if (o.value === aiFindDept(action.dept)) { o.selected = true; break; } } }
+        if (action.type) { for (const o of typeEl.options) { if (o.value === action.type) { o.selected = true; break; } } }
+        applyFilter();
+        aiAddMsg('🔍 AI 已执行筛选过滤', 'ai');
+        return true;
+      }
+      default:
+        return false;
+    }
+  } catch {
+    return false;
+  }
+}
+
 async function aiCallAPI(text) {
-  const summary = '当前物资系统数据：\n总单据数：' + mockData.length +
-    '\n待审核：' + mockData.filter(r => r.status === '待审核').length +
-    '\n已通过：' + mockData.filter(r => r.status === '已通过').length +
-    '\n各学院：' + depts.map(d => d + '(' + mockData.filter(r => r.dept === d).length + ')').join('、') +
-    '\n\n用户问题：' + text;
+  const recent = mockData.slice(0, 50).map(r =>
+    `${r.id} | ${r.dept} | ${r.item}(${r.type}) | ${r.qty}件 | ${r.date} | ${r.status}`
+  ).join('\n');
+  const typeStats = Object.entries(itemTypes).reduce((acc, [item, type]) => {
+    const count = mockData.filter(r => r.item === item).reduce((s, r) => s + r.qty, 0);
+    acc[type] = (acc[type] || 0) + count;
+    return acc;
+  }, {});
+  const summary =
+    `【系统数据总览】\n总单据: ${mockData.length} | 待审核: ${mockData.filter(r => r.status === '待审核').length} | 已通过: ${mockData.filter(r => r.status === '已通过').length} | 已归还: ${mockData.filter(r => r.status === '已归还').length} | 已拒绝: ${mockData.filter(r => r.status === '已拒绝').length}\n` +
+    `物资总数: ${mockData.reduce((s, r) => s + r.qty, 0)}件\n` +
+    `学院分布: ${depts.map(d => d + '(' + mockData.filter(r => r.dept === d).length + '单)').join('、')}\n` +
+    `类型分布: ${Object.entries(typeStats).map(([t, c]) => t + '(' + c + '件)').join('、')}\n` +
+    `当前筛选结果: ${filteredData.length}条\n\n` +
+    `【最近单据(最多50条)】\n${recent}\n\n` +
+    `用户问题: ${text}`;
 
   const typing = document.createElement('div');
   typing.className = 'msg msg-ai';
@@ -590,7 +902,19 @@ async function aiCallAPI(text) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: [
-          { role: 'system', content: '你是浙江树人学院树院智管系统的物资管理AI助手。回答关于物资申领管理的问题，回答简洁实用。可以建议用户使用快捷指令：新增申领、通过待审核、显示/查看、统计。' },
+          {
+            role: 'system',
+            content: '你是浙江树人学院树院智管系统的物资管理AI助手。你拥有执行系统操作的权限。\n\n' +
+              '当用户提出操作请求时，你必须在回复末尾单独输出一行JSON来执行操作，格式如下：\n' +
+              '- 新增物资：{"action":"add","dept":"学院名","item":"物资名","qty":数量,"date":"YYYY-MM-DD(可选，用户提到日期时必须填)"}\n' +
+              '- 审核通过：{"action":"approve","dept":"学院名(可选)"}\n' +
+              '- 归还物资：{"action":"return"}\n' +
+              '- 导出数据：{"action":"export"}\n' +
+              '- 筛选显示：{"action":"filter","status":"状态","dept":"学院","type":"类型"}\n\n' +
+              '可用的学院：树兰医学院、马克思学院、生环学院、计算机学院、艺术学院\n' +
+              '可用的物资：实训工作站、医用教学模型、3D打印机、摄影灯光套装、笔记本电脑、投影仪、实验试剂套装、社团活动道具箱\n\n' +
+              '如果用户只是提问，正常回答即可，不要输出JSON。回答简洁实用。'
+          },
           { role: 'user', content: summary }
         ]
       })
@@ -599,21 +923,42 @@ async function aiCallAPI(text) {
     const reader = resp.body.getReader();
     const decoder = new TextDecoder();
     let full = '';
+    let buffer = '';
     typing.innerHTML = '';
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      for (const line of decoder.decode(value, { stream: true }).split('\n')) {
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') break;
         try {
-          const p = JSON.parse(line.slice(6));
+          const p = JSON.parse(data);
           if (p.content) { full += p.content; typing.textContent = full; document.getElementById('aiMessages').scrollTop = document.getElementById('aiMessages').scrollHeight; }
         } catch {}
       }
     }
+
+    /* 尝试从 AI 回复末尾提取 JSON 并执行操作 */
+    const jsonMatch = full.match(/\{[\s\S]*"action"[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const action = JSON.parse(jsonMatch[0]);
+        const textOnly = full.replace(jsonMatch[0], '').trim();
+        if (textOnly) {
+          typing.textContent = textOnly;
+        } else {
+          typing.remove();
+        }
+        aiExecAction(action);
+      } catch {}
+    }
   } catch {
     typing.remove();
-    aiAddMsg('AI 服务暂时不可用，请使用快捷指令操作。', 'ai');
+    aiAddMsg('AI 服务暂时不可用，请先启动服务：npm start', 'ai');
   }
 }
 </script>
